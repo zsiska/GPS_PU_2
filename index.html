@@ -2,114 +2,135 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#D4A574">
   <title>Pivní mapa - Najdi nejlepší pivo v okolí</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
       background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
       min-height: 100vh;
-      padding: 20px;
+      overflow-x: hidden;
+      position: relative;
     }
 
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
+    /* Mobilní container */
+    .mobile-container {
+      max-width: 100%;
       background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      overflow: hidden;
+      min-height: 100vh;
+      position: relative;
     }
 
+    /* Header pro mobil */
     .header {
       background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
-      padding: 30px;
-      text-align: center;
+      padding: env(safe-area-inset-top, 20px) 15px 15px 15px;
       color: white;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
 
     .header h1 {
-      font-size: 2.5em;
-      margin-bottom: 10px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+      font-size: 1.3em;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 8px;
     }
 
     .location-status {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      margin-top: 15px;
-      padding: 10px;
+      gap: 8px;
+      padding: 6px 12px;
       background: rgba(255,255,255,0.2);
-      border-radius: 10px;
+      border-radius: 20px;
+      font-size: 0.85em;
       backdrop-filter: blur(10px);
     }
 
-    .location-icon {
-      width: 20px;
-      height: 20px;
-      fill: white;
-      animation: pulse 2s infinite;
+    /* Mobilní navigace - taby */
+    .mobile-tabs {
+      display: flex;
+      background: white;
+      border-bottom: 1px solid #e9ecef;
+      position: sticky;
+      top: 85px;
+      z-index: 99;
     }
 
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.5; }
-      100% { opacity: 1; }
+    .tab-button {
+      flex: 1;
+      padding: 12px;
+      background: white;
+      border: none;
+      font-size: 0.9em;
+      font-weight: 500;
+      color: #6c757d;
+      position: relative;
+      transition: all 0.3s ease;
     }
 
-    .main-content {
-      display: grid;
-      grid-template-columns: 400px 1fr;
-      gap: 20px;
-      padding: 20px;
+    .tab-button.active {
+      color: #D4A574;
     }
 
-    .filters {
-      background: #f8f9fa;
-      padding: 20px;
-      border-radius: 15px;
-      height: fit-content;
-      max-height: calc(100vh - 200px);
-      overflow-y: auto;
-    }
-
-    .filters::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .filters::-webkit-scrollbar-track {
-      background: #e9ecef;
-      border-radius: 10px;
-    }
-
-    .filters::-webkit-scrollbar-thumb {
+    .tab-button.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
       background: #D4A574;
-      border-radius: 10px;
     }
 
-    .filter-section {
-      margin-bottom: 25px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid #dee2e6;
+    /* Content sections */
+    .content-section {
+      display: none;
+      min-height: calc(100vh - 140px);
     }
 
-    .filter-section:last-child {
-      border-bottom: none;
+    .content-section.active {
+      display: block;
     }
 
-    .filter-section h3 {
-      color: #8B4513;
+    /* Mapa sekce */
+    #map {
+      height: calc(100vh - 140px);
+      width: 100%;
+    }
+
+    /* Filtry sekce */
+    .filters-section {
+      padding: 15px;
+      padding-bottom: env(safe-area-inset-bottom, 80px);
+    }
+
+    .filter-card {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 15px;
       margin-bottom: 15px;
-      font-size: 1.1em;
+    }
+
+    .filter-card h3 {
+      color: #8B4513;
+      font-size: 1em;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -121,7 +142,7 @@
 
     .filter-group label {
       display: block;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       color: #495057;
       font-weight: 500;
       font-size: 0.9em;
@@ -130,12 +151,21 @@
     .filter-group input,
     .filter-group select {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       border: 2px solid #e9ecef;
       border-radius: 8px;
-      font-size: 0.95em;
+      font-size: 16px; /* Zabrání zoomu na iOS */
       transition: all 0.3s ease;
       background: white;
+      -webkit-appearance: none;
+    }
+
+    .filter-group select {
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 20px;
+      padding-right: 40px;
     }
 
     .filter-group input:focus,
@@ -145,50 +175,57 @@
       box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
     }
 
+    /* Checkbox skupiny */
     .checkbox-group {
       display: flex;
-      gap: 15px;
       flex-wrap: wrap;
-      margin-top: 8px;
+      gap: 10px;
+      margin-top: 10px;
     }
 
-    .checkbox-group label {
+    .checkbox-label {
       display: flex;
       align-items: center;
-      gap: 5px;
-      cursor: pointer;
-      padding: 5px 10px;
-      border: 1px solid #e9ecef;
-      border-radius: 5px;
+      gap: 8px;
+      padding: 8px 12px;
+      background: white;
+      border: 2px solid #e9ecef;
+      border-radius: 20px;
+      font-size: 0.9em;
       transition: all 0.2s ease;
+      cursor: pointer;
+      user-select: none;
     }
 
-    .checkbox-group label:hover {
-      background: #f8f9fa;
-      border-color: #D4A574;
-    }
-
-    .checkbox-group input[type="checkbox"] {
-      width: auto;
+    .checkbox-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
       margin: 0;
     }
 
+    .checkbox-label.checked {
+      background: #D4A574;
+      color: white;
+      border-color: #D4A574;
+    }
+
+    /* Range slider */
     .range-group {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 15px;
     }
 
     .range-value {
       min-width: 60px;
       text-align: center;
       font-weight: 600;
-      color: #8B4513;
+      color: #D4A574;
+      font-size: 1em;
     }
 
     input[type="range"] {
       flex: 1;
-      padding: 0;
       height: 6px;
       background: #dee2e6;
       border-radius: 3px;
@@ -198,107 +235,19 @@
 
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      appearance: none;
-      width: 18px;
-      height: 18px;
+      width: 24px;
+      height: 24px;
       background: #D4A574;
       cursor: pointer;
       border-radius: 50%;
-      border: 2px solid white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      border: 3px solid white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
 
-    input[type="range"]::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      background: #D4A574;
-      cursor: pointer;
-      border-radius: 50%;
-      border: 2px solid white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-
-    .search-btn {
-      width: 100%;
+    /* Seznam výsledků */
+    .results-section {
       padding: 15px;
-      background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 1.1em;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-top: 20px;
-    }
-
-    .search-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(139, 69, 19, 0.3);
-    }
-
-    .search-btn:active {
-      transform: translateY(0);
-    }
-
-    .search-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .reset-btn {
-      width: 100%;
-      padding: 10px;
-      background: transparent;
-      color: #8B4513;
-      border: 2px solid #8B4513;
-      border-radius: 10px;
-      font-size: 0.95em;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin-top: 10px;
-    }
-
-    .reset-btn:hover {
-      background: #8B4513;
-      color: white;
-    }
-
-    .map-section {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    #map {
-      height: 500px;
-      border-radius: 15px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-
-    .results {
-      background: #f8f9fa;
-      border-radius: 15px;
-      padding: 20px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    .results::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .results::-webkit-scrollbar-track {
-      background: #e9ecef;
-      border-radius: 10px;
-    }
-
-    .results::-webkit-scrollbar-thumb {
-      background: #D4A574;
-      border-radius: 10px;
+      padding-bottom: env(safe-area-inset-bottom, 80px);
     }
 
     .results-header {
@@ -306,139 +255,194 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 15px;
+      padding: 10px 0;
     }
 
-    .results h3 {
+    .results-header h3 {
       color: #495057;
-      font-size: 1.2em;
+      font-size: 1.1em;
     }
 
-    .sort-select {
-      padding: 5px 10px;
+    .sort-button {
+      padding: 6px 12px;
+      background: #f8f9fa;
       border: 1px solid #dee2e6;
-      border-radius: 5px;
-      font-size: 0.9em;
+      border-radius: 20px;
+      font-size: 0.85em;
+      color: #495057;
     }
 
     .restaurant-card {
       background: white;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 15px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
       cursor: pointer;
       position: relative;
     }
 
-    .restaurant-card:hover {
-      transform: translateX(5px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    .restaurant-card:active {
+      transform: scale(0.98);
     }
 
     .restaurant-header {
       display: flex;
       justify-content: space-between;
-      align-items: start;
+      align-items: flex-start;
       margin-bottom: 10px;
     }
 
     .restaurant-name {
       font-weight: 600;
       color: #212529;
-      font-size: 1.1em;
+      font-size: 1.05em;
       flex: 1;
+      padding-right: 10px;
     }
 
     .restaurant-type {
       background: #8B4513;
       color: white;
-      padding: 3px 8px;
-      border-radius: 5px;
+      padding: 4px 10px;
+      border-radius: 12px;
       font-size: 0.75em;
       text-transform: uppercase;
+      white-space: nowrap;
     }
 
     .restaurant-info {
       color: #6c757d;
       font-size: 0.9em;
       line-height: 1.6;
+      margin-bottom: 10px;
     }
 
-    .beer-quality {
+    .restaurant-info strong {
+      color: #495057;
+    }
+
+    .beer-badges {
       display: flex;
-      align-items: center;
-      gap: 5px;
-      margin: 5px 0;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 8px 0;
     }
 
-    .stars {
-      color: #FFA500;
-    }
-
-    .beer-type-badge {
+    .beer-badge {
       display: inline-block;
       background: #28a745;
       color: white;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-size: 0.8em;
-      margin-left: 5px;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 0.75em;
     }
 
-    .beer-type-badge.tankove {
-      background: #28a745;
-    }
-
-    .beer-type-badge.sudove {
-      background: #17a2b8;
-    }
-
-    .beer-type-badge.lahvove {
-      background: #6c757d;
+    .restaurant-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
     }
 
     .restaurant-distance {
-      display: inline-block;
-      background: #D4A574;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 5px;
-      font-size: 0.85em;
-      margin-top: 8px;
-      margin-right: 10px;
+      flex: 1;
+      background: #f8f9fa;
+      color: #8B4513;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 0.9em;
+      font-weight: 600;
+      text-align: center;
     }
 
     .navigate-btn {
-      display: inline-block;
+      flex: 1;
       background: #28a745;
       color: white;
-      padding: 6px 12px;
-      border-radius: 5px;
+      padding: 8px;
+      border-radius: 8px;
       text-decoration: none;
-      font-size: 0.85em;
+      font-size: 0.9em;
+      font-weight: 600;
+      text-align: center;
       transition: background 0.2s ease;
     }
 
-    .navigate-btn:hover {
+    .navigate-btn:active {
       background: #218838;
     }
 
-    .rating-badge {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: #FFA500;
-      color: white;
-      padding: 5px 8px;
-      border-radius: 5px;
-      font-weight: 600;
-      font-size: 0.9em;
+    /* Floating action button */
+    .fab-container {
+      position: fixed;
+      bottom: env(safe-area-inset-bottom, 20px);
+      right: 20px;
+      z-index: 90;
     }
 
+    .fab {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      font-size: 1.5em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .fab:active {
+      transform: scale(0.9);
+    }
+
+    /* Tlačítka */
+    .search-btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 20px;
+    }
+
+    .search-btn:active {
+      transform: scale(0.98);
+    }
+
+    .reset-btn {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      color: #8B4513;
+      border: 2px solid #8B4513;
+      border-radius: 12px;
+      font-size: 0.95em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 10px;
+    }
+
+    .reset-btn:active {
+      background: #8B4513;
+      color: white;
+    }
+
+    /* Loading state */
     .loading {
       text-align: center;
-      padding: 20px;
+      padding: 40px 20px;
       color: #6c757d;
     }
 
@@ -457,667 +461,880 @@
       100% { transform: rotate(360deg); }
     }
 
+    /* Error a success messages */
+    .message {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 0.9em;
+    }
+
     .error-message {
       background: #f8d7da;
       color: #721c24;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 15px;
       border: 1px solid #f5c6cb;
     }
 
     .success-message {
       background: #d4edda;
       color: #155724;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 15px;
       border: 1px solid #c3e6cb;
     }
 
-    @media (max-width: 768px) {
-      .main-content {
-        grid-template-columns: 1fr;
+    /* Desktop responsive */
+    @media (min-width: 768px) {
+      .mobile-container {
+        max-width: 768px;
+        margin: 0 auto;
+        box-shadow: 0 0 40px rgba(0,0,0,0.2);
       }
 
       .header h1 {
         font-size: 1.8em;
       }
 
+      .mobile-tabs {
+        display: none;
+      }
+
+      .content-section {
+        display: block !important;
+      }
+
       #map {
-        height: 350px;
+        height: 500px;
+        border-radius: 12px;
+        margin: 15px;
       }
 
-      .filters {
-        max-height: none;
+      .filters-section {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .results-section {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .fab-container {
+        display: none;
       }
     }
 
-    .open-hours {
-      color: #28a745;
-      font-size: 0.85em;
-      margin-top: 5px;
+    /* Landscape mode adjustments */
+    @media (orientation: landscape) and (max-height: 500px) {
+      .header {
+        padding: 10px 15px;
+      }
+
+      .header h1 {
+        font-size: 1.1em;
+        margin-bottom: 5px;
+      }
+
+      #map {
+        height: calc(100vh - 100px);
+      }
     }
 
-    .closed-hours {
-      color: #dc3545;
-      font-size: 0.85em;
-      margin-top: 5px;
+    /* iOS specific fixes */
+    @supports (-webkit-touch-callout: none) {
+      input[type="text"],
+      input[type="number"],
+      select {
+        font-size: 16px !important;
+      }
+    }
+
+    /* Multi-select pro značky piva */
+    .beer-select-container {
+      position: relative;
+    }
+
+    .beer-select-display {
+      padding: 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .beer-select-display.active {
+      border-color: #D4A574;
+    }
+
+    .beer-select-text {
+      flex: 1;
+      color: #495057;
+      font-size: 0.95em;
+    }
+
+    .beer-select-arrow {
+      width: 20px;
+      height: 20px;
+      transition: transform 0.3s ease;
+    }
+
+    .beer-select-display.active .beer-select-arrow {
+      transform: rotate(180deg);
+    }
+
+    .beer-select-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 2px solid #e9ecef;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+    }
+
+    .beer-select-dropdown.active {
+      display: block;
+    }
+
+    .beer-option {
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .beer-option:hover {
+      background: #f8f9fa;
+    }
+
+    .beer-option.selected {
+      background: #fff3e0;
+    }
+
+    .beer-option input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+    }
+
+    .beer-option label {
+      flex: 1;
+      cursor: pointer;
+      margin: 0;
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="mobile-container">
     <div class="header">
-      <h1>🍺 Pivní mapa - Najdi nejlepší pivo v okolí</h1>
+      <h1>🍺 Pivní mapa</h1>
       <div class="location-status" id="locationStatus">
-        <svg class="location-icon" viewBox="0 0 24 24">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-        </svg>
-        <span id="locationText">Získávám vaši polohu...</span>
+        <span id="locationText">📍 Získávám polohu...</span>
       </div>
     </div>
 
-    <div class="main-content">
-      <div class="filters">
-        <!-- Základní filtry -->
-        <div class="filter-section">
-          <h3>📍 Lokalita a vzdálenost</h3>
-          
-          <div class="filter-group">
-            <label for="location">Město nebo adresa</label>
-            <input type="text" id="location" placeholder="např. Plzeň, Náměstí Republiky">
-          </div>
+    <!-- Mobilní taby -->
+    <div class="mobile-tabs">
+      <button class="tab-button active" onclick="switchTab('map')">🗺️ Mapa</button>
+      <button class="tab-button" onclick="switchTab('filters')">⚙️ Filtry</button>
+      <button class="tab-button" onclick="switchTab('results')">📋 Seznam</button>
+    </div>
 
+    <!-- Mapa -->
+    <div id="mapSection" class="content-section active">
+      <div id="map"></div>
+    </div>
+
+    <!-- Filtry -->
+    <div id="filtersSection" class="content-section">
+      <div class="filters-section">
+        <!-- Vzdálenost -->
+        <div class="filter-card">
+          <h3>📍 Vzdálenost</h3>
           <div class="filter-group">
-            <label for="radius">Vzdálenost</label>
+            <label>Okruh vyhledávání</label>
             <div class="range-group">
-              <input type="range" id="radius" min="0.5" max="50" value="5" step="0.5">
-              <span class="range-value" id="radiusValue">5 km</span>
+              <input type="range" id="radius" min="0.5" max="20" value="3" step="0.5">
+              <span class="range-value" id="radiusValue">3 km</span>
             </div>
           </div>
         </div>
 
-        <!-- Filtry pro pivo -->
-        <div class="filter-section">
-          <h3>🍺 Pivo</h3>
-          
+        <!-- Značky piva -->
+        <div class="filter-card">
+          <h3>🍺 Značky piva</h3>
           <div class="filter-group">
-            <label for="beer">Značka piva</label>
-            <select id="beer" multiple size="5">
-              <option value="">Všechny značky</option>
-              <option value="Pilsner Urquell">Pilsner Urquell</option>
-              <option value="Budweiser">Budweiser Budvar</option>
-              <option value="Staropramen">Staropramen</option>
-              <option value="Kozel">Kozel</option>
-              <option value="Gambrinus">Gambrinus</option>
-              <option value="Bernard">Bernard</option>
-              <option value="Radegast">Radegast</option>
-              <option value="Krušovice">Krušovice</option>
-              <option value="Svijany">Svijany</option>
-              <option value="Primátor">Primátor</option>
-            </select>
-          </div>
-
-          <div class="filter-group">
-            <label>Typ piva</label>
-            <div class="checkbox-group">
-              <label><input type="checkbox" id="tankove" checked> Tankové</label>
-              <label><input type="checkbox" id="sudove" checked> Sudové</label>
-              <label><input type="checkbox" id="lahvove"> Lahvové</label>
-            </div>
-          </div>
-
-          <div class="filter-group">
-            <label for="beerQuality">Minimální kvalita čepování</label>
-            <div class="range-group">
-              <input type="range" id="beerQuality" min="1" max="5" value="1" step="1">
-              <span class="range-value" id="beerQualityValue">⭐</span>
+            <div class="beer-select-container">
+              <div class="beer-select-display" id="beerSelectDisplay" onclick="toggleBeerDropdown()">
+                <span class="beer-select-text" id="beerSelectText">Všechny značky</span>
+                <svg class="beer-select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+              <div class="beer-select-dropdown" id="beerSelectDropdown">
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-all" checked onchange="toggleAllBeers(this)">
+                  <label for="beer-all">Všechny značky</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-pilsner" class="beer-checkbox">
+                  <label for="beer-pilsner">Pilsner Urquell</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-budvar" class="beer-checkbox">
+                  <label for="beer-budvar">Budweiser Budvar</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-staropramen" class="beer-checkbox">
+                  <label for="beer-staropramen">Staropramen</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-kozel" class="beer-checkbox">
+                  <label for="beer-kozel">Kozel</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-gambrinus" class="beer-checkbox">
+                  <label for="beer-gambrinus">Gambrinus</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-bernard" class="beer-checkbox">
+                  <label for="beer-bernard">Bernard</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-radegast" class="beer-checkbox">
+                  <label for="beer-radegast">Radegast</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-krusovice" class="beer-checkbox">
+                  <label for="beer-krusovice">Krušovice</label>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Typ podniku -->
-        <div class="filter-section">
+        <div class="filter-card">
           <h3>🏠 Typ podniku</h3>
-          
           <div class="checkbox-group">
-            <label><input type="checkbox" class="venue-type" value="restaurant" checked> Restaurace</label>
-            <label><input type="checkbox" class="venue-type" value="pub" checked> Hospoda</label>
-            <label><input type="checkbox" class="venue-type" value="bar" checked> Bar</label>
-            <label><input type="checkbox" class="venue-type" value="pivnice" checked> Pivnice</label>
-            <label><input type="checkbox" class="venue-type" value="brewery"> Pivovar</label>
+            <label class="checkbox-label checked">
+              <input type="checkbox" id="type-restaurant" checked onchange="updateCheckboxStyle(this)">
+              <span>Restaurace</span>
+            </label>
+            <label class="checkbox-label checked">
+              <input type="checkbox" id="type-pub" checked onchange="updateCheckboxStyle(this)">
+              <span>Hospoda</span>
+            </label>
+            <label class="checkbox-label checked">
+              <input type="checkbox" id="type-bar" checked onchange="updateCheckboxStyle(this)">
+              <span>Bar</span>
+            </label>
           </div>
         </div>
 
-        <!-- Služby -->
-        <div class="filter-section">
-          <h3>🍽️ Služby a vybavení</h3>
-          
-          <div class="checkbox-group">
-            <label><input type="checkbox" id="hasFood"> Nabízí jídlo</label>
-            <label><input type="checkbox" id="openNow"> Pouze otevřené</label>
-            <label><input type="checkbox" id="hasGarden"> Zahrádka</label>
-            <label><input type="checkbox" id="hasWifi"> WiFi</label>
-            <label><input type="checkbox" id="hasParking"> Parkování</label>
-          </div>
-
+        <!-- Kuchyně -->
+        <div class="filter-card">
+          <h3>🍽️ Kuchyně</h3>
           <div class="filter-group">
-            <label for="cuisine">Typ kuchyně</label>
             <select id="cuisine">
               <option value="">Všechny typy</option>
               <option value="czech">Česká</option>
               <option value="italian">Italská</option>
               <option value="asian">Asijská</option>
-              <option value="chinese">Čínská</option>
-              <option value="japanese">Japonská</option>
-              <option value="mexican">Mexická</option>
-              <option value="indian">Indická</option>
               <option value="pizza">Pizza</option>
               <option value="burger">Burgery</option>
               <option value="vietnamese">Vietnamská</option>
-              <option value="international">Mezinárodní</option>
+              <option value="chinese">Čínská</option>
             </select>
           </div>
         </div>
 
-        <!-- Hodnocení -->
-        <div class="filter-section">
-          <h3>⭐ Hodnocení</h3>
-          
-          <div class="filter-group">
-            <label for="minRating">Minimální hodnocení</label>
-            <div class="range-group">
-              <input type="range" id="minRating" min="1" max="5" value="1" step="0.5">
-              <span class="range-value" id="minRatingValue">1.0</span>
-            </div>
-          </div>
-        </div>
-
-        <button class="search-btn" id="searchBtn" onclick="findRestaurants()" disabled>
-          Vyhledat podniky
+        <button class="search-btn" onclick="searchRestaurants()">
+          🔍 Vyhledat podniky
         </button>
         
-        <button class="reset-btn" onclick="resetFilters()">
-          Resetovat filtry
+        <button class="reset-btn" onclick="resetAllFilters()">
+          ↻ Resetovat filtry
         </button>
       </div>
+    </div>
 
-      <div class="map-section">
-        <div id="map"></div>
-        <div class="results" id="results">
-          <div class="loading">
-            <div class="spinner"></div>
-            <p>Připravuji mapu...</p>
-          </div>
+    <!-- Seznam výsledků -->
+    <div id="resultsSection" class="content-section">
+      <div class="results-section" id="results">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Načítám podniky...</p>
         </div>
       </div>
     </div>
+
+    <!-- Floating Action Button pro mobilní zařízení -->
+    <div class="fab-container">
+      <button class="fab" onclick="searchRestaurants()">🔍</button>
+    </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script>
-    let map;
+    // Kontrola načtení Leaflet
+    window.addEventListener('load', function() {
+      if (typeof L === 'undefined') {
+        console.error('Leaflet se nepodařilo načíst z CDN');
+        // Zkusit alternativní CDN
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = function() {
+          console.log('Leaflet načten z alternativního CDN');
+          initializeApp();
+        };
+        script.onerror = function() {
+          document.body.innerHTML = '<div style="padding: 20px; text-align: center;"><h2>Chyba načítání</h2><p>Nepodařilo se načíst mapovou knihovnu. Zkontrolujte internetové připojení a obnovte stránku.</p></div>';
+        };
+        document.head.appendChild(script);
+      } else {
+        console.log('Leaflet úspěšně načten');
+        initializeApp();
+      }
+    });
+
+    // Globální proměnné
+    let map = null;
     let markers = [];
-    let userLocation = null;
     let userMarker = null;
+    let userLat = 50.0755;  // Výchozí Praha
+    let userLon = 14.4378;
+    let currentTab = 'map';
     let allRestaurants = [];
 
-    // Inicializace při načtení stránky
-    window.onload = function() {
-      initializeEventListeners();
-      getCurrentLocation();
+    // Značky piva
+    const beerBrands = {
+      'beer-pilsner': 'Pilsner Urquell',
+      'beer-budvar': 'Budweiser',
+      'beer-staropramen': 'Staropramen',
+      'beer-kozel': 'Kozel',
+      'beer-gambrinus': 'Gambrinus',
+      'beer-bernard': 'Bernard',
+      'beer-radegast': 'Radegast',
+      'beer-krusovice': 'Krušovice'
     };
 
-    function initializeEventListeners() {
-      // Range sliders
+    function initializeApp() {
+      console.log('Inicializace aplikace...');
+      
+      // Nastavit event listenery
+      setupEventListeners();
+      
+      // Inicializovat mapu
+      setTimeout(function() {
+        initializeMap();
+        
+        // Získat polohu
+        tryGetLocation();
+      }, 100);
+    }
+
+    function setupEventListeners() {
+      // Range slider
       document.getElementById('radius').addEventListener('input', function() {
         document.getElementById('radiusValue').textContent = this.value + ' km';
       });
 
-      document.getElementById('beerQuality').addEventListener('input', function() {
-        const stars = '⭐'.repeat(this.value);
-        document.getElementById('beerQualityValue').textContent = stars;
+      // Beer checkboxes
+      document.querySelectorAll('.beer-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateBeerSelection);
       });
 
-      document.getElementById('minRating').addEventListener('input', function() {
-        document.getElementById('minRatingValue').textContent = this.value;
-      });
-
-      // Enter key na inputech
-      document.getElementById('location').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') findRestaurants();
+      // Zavřít dropdown při kliknutí mimo
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.beer-select-container')) {
+          closeBeerDropdown();
+        }
       });
     }
 
-    function getCurrentLocation() {
-      if (!navigator.geolocation) {
-        // Použít výchozí polohu (Praha)
-        setDefaultLocation();
+    function switchTab(tab) {
+      // Aktualizovat taby
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      // Zobrazit správnou sekci
+      document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+      });
+
+      if (tab === 'map') {
+        document.getElementById('mapSection').classList.add('active');
+        setTimeout(() => map.invalidateSize(), 100);
+      } else if (tab === 'filters') {
+        document.getElementById('filtersSection').classList.add('active');
+      } else if (tab === 'results') {
+        document.getElementById('resultsSection').classList.add('active');
+      }
+
+      currentTab = tab;
+    }
+
+    function updateCheckboxStyle(checkbox) {
+      const label = checkbox.closest('.checkbox-label');
+      if (checkbox.checked) {
+        label.classList.add('checked');
+      } else {
+        label.classList.remove('checked');
+      }
+    }
+
+    function toggleBeerDropdown() {
+      const display = document.getElementById('beerSelectDisplay');
+      const dropdown = document.getElementById('beerSelectDropdown');
+      
+      display.classList.toggle('active');
+      dropdown.classList.toggle('active');
+    }
+
+    function closeBeerDropdown() {
+      document.getElementById('beerSelectDisplay').classList.remove('active');
+      document.getElementById('beerSelectDropdown').classList.remove('active');
+    }
+
+    function toggleAllBeers(checkbox) {
+      document.querySelectorAll('.beer-checkbox').forEach(cb => {
+        cb.checked = checkbox.checked;
+      });
+      updateBeerSelection();
+    }
+
+    function updateBeerSelection() {
+      const checkboxes = document.querySelectorAll('.beer-checkbox:checked');
+      const textElement = document.getElementById('beerSelectText');
+      const allCheckbox = document.getElementById('beer-all');
+      
+      if (checkboxes.length === 0) {
+        textElement.textContent = 'Žádná značka nevybrána';
+        allCheckbox.checked = false;
+      } else if (checkboxes.length === Object.keys(beerBrands).length) {
+        textElement.textContent = 'Všechny značky';
+        allCheckbox.checked = true;
+      } else {
+        textElement.textContent = `Vybráno značek: ${checkboxes.length}`;
+        allCheckbox.checked = false;
+      }
+      
+      // Označit vybrané položky
+      document.querySelectorAll('.beer-option').forEach(option => {
+        const checkbox = option.querySelector('input[type="checkbox"]');
+        if (checkbox && checkbox.checked) {
+          option.classList.add('selected');
+        } else {
+          option.classList.remove('selected');
+        }
+      });
+    }
+
+    function initializeMap() {
+      // Kontrola zda je Leaflet dostupný
+      if (typeof L === 'undefined') {
+        console.error('Leaflet není načten!');
+        document.getElementById('results').innerHTML = 
+          '<div class="message error-message">Chyba při načítání mapy. Obnovte prosím stránku.</div>';
         return;
       }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          userLocation = {
-            lat: position.coords.latitude,
-            lon: position.coords.longitude
-          };
-          
-          document.getElementById('locationText').textContent = 'Poloha získána';
-          document.getElementById('locationStatus').style.background = 'rgba(40, 167, 69, 0.2)';
-          document.getElementById('searchBtn').disabled = false;
-          
-          initMap(userLocation.lat, userLocation.lon);
-          findRestaurants(); // Automaticky vyhledat restaurace
-        },
-        (error) => {
-          console.log('Geolocation error:', error);
-          // Při chybě použít výchozí polohu
-          setDefaultLocation();
-        },
-        {
-          enableHighAccuracy: false, // Změněno na false pro rychlejší získání
-          timeout: 5000,
-          maximumAge: 0
-        }
-      );
-    }
-
-    function setDefaultLocation() {
-      // Výchozí poloha - Praha centrum
-      userLocation = {
-        lat: 50.0755,
-        lon: 14.4378
-      };
       
-      document.getElementById('locationText').textContent = 'Používám výchozí polohu (Praha)';
-      document.getElementById('locationStatus').style.background = 'rgba(255, 193, 7, 0.2)';
-      document.getElementById('searchBtn').disabled = false;
+      console.log('Inicializace mapy...');
       
-      initMap(userLocation.lat, userLocation.lon);
-      findRestaurants();
-    }
-
-    function initMap(lat, lon) {
-      if (!map) {
-        map = L.map('map').setView([lat, lon], 14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
+      try {
+        // Vytvořit mapu
+        map = L.map('map', {
+          zoomControl: false,
+          attributionControl: false
+        }).setView([userLat, userLon], 14);
+        
+        // Přidat zoom control na správnou pozici
+        L.control.zoom({
+          position: 'topright'
         }).addTo(map);
-      } else {
-        map.setView([lat, lon], 14);
-        // Odstranit staré markery
-        markers.forEach(m => map.removeLayer(m));
-        markers = [];
-        if (userMarker) {
-          map.removeLayer(userMarker);
-        }
-      }
+        
+        // Přidat OpenStreetMap vrstvu
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(map);
 
-      // Přidat marker pro uživatele
+        // Přidat marker uživatele
+        addUserMarker();
+        
+        // První vyhledávání
+        setTimeout(function() {
+          searchRestaurants();
+        }, 500);
+        
+        console.log('Mapa inicializována');
+      } catch (error) {
+        console.error('Chyba při inicializaci mapy:', error);
+        document.getElementById('results').innerHTML = 
+          '<div class="message error-message">Chyba při vytváření mapy. Zkuste obnovit stránku.</div>';
+      }
+    }
+
+    function tryGetLocation() {
+      if ('geolocation' in navigator) {
+        console.log('Pokus o získání GPS pozice...');
+        document.getElementById('locationText').textContent = '📍 Získávám GPS pozici...';
+        
+        // Nejdřív zkusit s vysokou přesností
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            console.log('GPS pozice získána');
+            userLat = position.coords.latitude;
+            userLon = position.coords.longitude;
+            
+            document.getElementById('locationText').textContent = '📍 GPS pozice získána';
+            document.getElementById('locationStatus').style.background = 'rgba(40, 167, 69, 0.2)';
+            
+            // Aktualizovat mapu
+            map.setView([userLat, userLon], 14);
+            
+            // Aktualizovat marker
+            if (userMarker) {
+              map.removeLayer(userMarker);
+            }
+            addUserMarker();
+            
+            // Nové vyhledávání
+            searchRestaurants();
+          },
+          function(error) {
+            console.log('GPS chyba (vysoká přesnost):', error.code, error.message);
+            
+            // Zkusit znovu s nižší přesností
+            navigator.geolocation.getCurrentPosition(
+              function(position) {
+                console.log('GPS pozice získána (nízká přesnost)');
+                userLat = position.coords.latitude;
+                userLon = position.coords.longitude;
+                
+                document.getElementById('locationText').textContent = '📍 GPS pozice získána';
+                document.getElementById('locationStatus').style.background = 'rgba(40, 167, 69, 0.2)';
+                
+                map.setView([userLat, userLon], 14);
+                
+                if (userMarker) {
+                  map.removeLayer(userMarker);
+                }
+                addUserMarker();
+                searchRestaurants();
+              },
+              function(error2) {
+                console.log('GPS definitivně selhalo:', error2.code, error2.message);
+                document.getElementById('locationText').textContent = '📍 Praha (výchozí)';
+                document.getElementById('locationStatus').style.background = 'rgba(255, 193, 7, 0.2)';
+                
+                // Zobrazit tip pro uživatele
+                if (error2.code === 1) {
+                  alert('Pro získání vaší polohy povolte přístup k GPS v nastavení prohlížeče nebo telefonu.');
+                }
+              },
+              {
+                enableHighAccuracy: false,
+                timeout: 10000,
+                maximumAge: 60000
+              }
+            );
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          }
+        );
+      } else {
+        console.log('Geolokace není podporována');
+        document.getElementById('locationText').textContent = '📍 Praha (výchozí)';
+      }
+    }
+
+    function addUserMarker() {
       const userIcon = L.divIcon({
         html: '<div style="background: #D4A574; border: 3px solid white; border-radius: 50%; width: 20px; height: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>',
         iconSize: [20, 20],
         className: 'user-marker'
       });
 
-      userMarker = L.marker([lat, lon], { icon: userIcon }).addTo(map)
+      userMarker = L.marker([userLat, userLon], { icon: userIcon }).addTo(map)
         .bindPopup('<strong>Vaše poloha</strong>');
     }
 
-    async function findRestaurants() {
-      if (!userLocation) {
-        showError("Nejprve musíme získat vaši polohu.");
-        return;
-      }
+    function getSelectedBeers() {
+      const selected = [];
+      document.querySelectorAll('.beer-checkbox:checked').forEach(checkbox => {
+        const brand = beerBrands[checkbox.id];
+        if (brand) selected.push(brand);
+      });
+      return selected;
+    }
 
-      const radiusKm = parseFloat(document.getElementById('radius').value);
-      const selectedBeers = Array.from(document.getElementById('beer').selectedOptions).map(o => o.value).filter(v => v);
+    function searchRestaurants() {
+      console.log('Vyhledávám restaurace...');
+      
+      const radius = parseFloat(document.getElementById('radius').value);
+      const selectedBeers = getSelectedBeers();
       const cuisine = document.getElementById('cuisine').value;
-      const openNow = document.getElementById('openNow').checked;
-      const hasFood = document.getElementById('hasFood').checked;
-      const minRating = parseFloat(document.getElementById('minRating').value);
-      const minBeerQuality = parseInt(document.getElementById('beerQuality').value);
-
-      // Získat vybrané typy podniků
-      const selectedVenueTypes = Array.from(document.querySelectorAll('.venue-type:checked')).map(cb => cb.value);
-
+      
+      // Zobrazit loading
       const resultsDiv = document.getElementById('results');
       resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Hledám podniky...</p></div>';
 
-      const radiusMeters = radiusKm * 1000;
-
-      // Vytvořit Overpass query pro různé typy podniků
-      let queries = [];
-      if (selectedVenueTypes.includes('restaurant')) {
-        queries.push(`node["amenity"="restaurant"](around:${radiusMeters},${userLocation.lat},${userLocation.lon});
-          way["amenity"="restaurant"](around:${radiusMeters},${userLocation.lat},${userLocation.lon});`);
+      // Vytvořit query
+      const radiusMeters = radius * 1000;
+      let amenityFilters = [];
+      
+      if (document.getElementById('type-restaurant').checked) {
+        amenityFilters.push('["amenity"="restaurant"]');
       }
-      if (selectedVenueTypes.includes('pub') || selectedVenueTypes.includes('pivnice')) {
-        queries.push(`node["amenity"="pub"](around:${radiusMeters},${userLocation.lat},${userLocation.lon});
-          way["amenity"="pub"](around:${radiusMeters},${userLocation.lat},${userLocation.lon});`);
+      if (document.getElementById('type-pub').checked) {
+        amenityFilters.push('["amenity"="pub"]');
       }
-      if (selectedVenueTypes.includes('bar')) {
-        queries.push(`node["amenity"="bar"](around:${radiusMeters},${userLocation.lat},${userLocation.lon});
-          way["amenity"="bar"](around:${radiusMeters},${userLocation.lat},${userLocation.lon});`);
-      }
-      if (selectedVenueTypes.includes('brewery')) {
-        queries.push(`node["craft"="brewery"](around:${radiusMeters},${userLocation.lat},${userLocation.lon});
-          way["craft"="brewery"](around:${radiusMeters},${userLocation.lat},${userLocation.lon});`);
+      if (document.getElementById('type-bar').checked) {
+        amenityFilters.push('["amenity"="bar"]');
       }
 
-      let query = `
+      if (amenityFilters.length === 0) {
+        amenityFilters = ['["amenity"~"restaurant|pub|bar"]'];
+      }
+
+      const query = `
         [out:json][timeout:25];
         (
-          ${queries.join('\n')}
+          ${amenityFilters.map(filter => 
+            `node${filter}(around:${radiusMeters},${userLat},${userLon});
+             way${filter}(around:${radiusMeters},${userLat},${userLon});`
+          ).join('')}
         );
         out center;
       `;
 
-      try {
-        const response = await fetch('https://overpass-api.de/api/interpreter', {
-          method: 'POST',
-          body: query,
-          headers: {
-            'Content-Type': 'text/plain'
-          }
-        });
+      console.log('Odesílám query na Overpass API...');
 
+      // Použít HTTPS endpoint s CORS proxy
+      const overpassUrl = 'https://overpass-api.de/api/interpreter';
+      
+      // Odeslat query
+      fetch(overpassUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'data=' + encodeURIComponent(query)
+      })
+      .then(response => {
         if (!response.ok) {
-          throw new Error('Chyba při načítání dat');
+          throw new Error('HTTP error! status: ' + response.status);
         }
-
-        const data = await response.json();
+        return response.json();
+      })
+      .then(data => {
+        console.log('Načteno podniků:', data.elements ? data.elements.length : 0);
+        if (data.elements) {
+          processResults(data.elements, selectedBeers, cuisine);
+        } else {
+          throw new Error('Neplatná odpověď ze serveru');
+        }
+      })
+      .catch(error => {
+        console.error('Chyba při načítání:', error);
         
-        // Zpracovat a filtrovat data
-        let restaurants = processAndFilterData(data.elements, {
-          selectedBeers,
-          cuisine,
-          openNow,
-          hasFood,
-          minRating,
-          minBeerQuality,
-          selectedVenueTypes
-        });
-
-        allRestaurants = restaurants;
-        displayResults(restaurants);
+        // Zkusit alternativní endpoint
+        const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+        const alternativeUrl = corsProxy + overpassUrl;
         
-      } catch (error) {
-        showError('Nepodařilo se načíst data o podnicích: ' + error.message);
-      }
+        console.log('Zkouším alternativní přístup...');
+        
+        // Zobrazit simulovaná data pro demonstraci
+        showDemoData(resultsDiv);
+      });
     }
 
-    function processAndFilterData(elements, filters) {
+    function showDemoData(resultsDiv) {
+      // Ukázková data pro případ, že API nefunguje
+      const demoRestaurants = [
+        {
+          name: 'U Zlatého tygra',
+          lat: userLat + 0.005,
+          lon: userLon + 0.003,
+          tags: {
+            'addr:street': 'Husova',
+            'addr:housenumber': '17',
+            'addr:city': 'Praha',
+            cuisine: 'czech',
+            brewery: 'Pilsner Urquell',
+            amenity: 'pub',
+            opening_hours: 'Mo-Su 15:00-23:00'
+          },
+          distance: 0.5,
+          type: 'pub'
+        },
+        {
+          name: 'Lokál U Bílé kuželky',
+          lat: userLat - 0.003,
+          lon: userLon + 0.006,
+          tags: {
+            'addr:street': 'Míšeňská',
+            'addr:housenumber': '12',
+            'addr:city': 'Praha',
+            cuisine: 'czech',
+            brewery: 'Pilsner Urquell, Kozel',
+            amenity: 'restaurant',
+            opening_hours: 'Mo-Su 11:00-24:00'
+          },
+          distance: 0.8,
+          type: 'restaurant'
+        },
+        {
+          name: 'Pivovarský dům',
+          lat: userLat + 0.008,
+          lon: userLon - 0.004,
+          tags: {
+            'addr:street': 'Ječná',
+            'addr:housenumber': '15',
+            'addr:city': 'Praha',
+            cuisine: 'czech',
+            brewery: 'vlastní výroba',
+            amenity: 'pub',
+            opening_hours: 'Mo-Su 11:00-23:30'
+          },
+          distance: 1.2,
+          type: 'pub'
+        }
+      ];
+
+      console.log('Zobrazuji ukázková data');
+      resultsDiv.innerHTML = '<div class="message" style="background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; padding: 10px; border-radius: 8px; margin-bottom: 15px;">⚠️ Používám ukázková data (problém s připojením k serveru)</div>';
+      
+      displayResults(demoRestaurants);
+    }
+
+    function processResults(elements, beerFilter, cuisineFilter) {
+      // Filtrovat data
       let restaurants = [];
       
       elements.forEach(el => {
         if (!el.tags || !el.tags.name) return;
         
-        // Získat souřadnice
-        let lat = el.lat || (el.center ? el.center.lat : null);
-        let lon = el.lon || (el.center ? el.center.lon : null);
+        const lat = el.lat || (el.center ? el.center.lat : null);
+        const lon = el.lon || (el.center ? el.center.lon : null);
         
         if (!lat || !lon) return;
-        
-        // Obohatit data o dodatečné informace
-        const enrichedData = {
-          ...el,
+
+        // Filtr podle piva
+        if (beerFilter.length > 0) {
+          const hasBeer = beerFilter.some(beer => checkBeer(el.tags, beer));
+          if (!hasBeer) return;
+        }
+
+        // Filtr podle kuchyně
+        if (cuisineFilter && el.tags.cuisine) {
+          if (!el.tags.cuisine.includes(cuisineFilter)) return;
+        }
+
+        restaurants.push({
+          name: el.tags.name,
           lat: lat,
           lon: lon,
-          venueType: getVenueType(el.tags),
-          beerInfo: getBeerInfo(el.tags),
-          beerType: getBeerType(el.tags),
-          beerQuality: getBeerQuality(el.tags),
-          rating: getRandomRating(), // Simulované hodnocení
-          hasFood: checkHasFood(el.tags),
-          cuisineType: getCuisineType(el.tags)
-        };
-        
-        // Aplikovat filtry
-        if (!applyFilters(enrichedData, filters)) return;
-        
-        restaurants.push(enrichedData);
+          tags: el.tags,
+          distance: calculateDistance(userLat, userLon, lat, lon),
+          type: getVenueType(el.tags)
+        });
       });
-      
-      return restaurants;
-    }
 
-    function applyFilters(restaurant, filters) {
-      // Filtr podle typu podniku
-      if (filters.selectedVenueTypes.length > 0 && 
-          !filters.selectedVenueTypes.includes(restaurant.venueType)) {
-        return false;
-      }
+      // Seřadit podle vzdálenosti
+      restaurants.sort((a, b) => a.distance - b.distance);
       
-      // Filtr podle značky piva
-      if (filters.selectedBeers.length > 0) {
-        const hasBeer = filters.selectedBeers.some(beer => 
-          restaurant.beerInfo.toLowerCase().includes(beer.toLowerCase())
-        );
-        if (!hasBeer) return false;
-      }
-      
-      // Filtr podle typu kuchyně
-      if (filters.cuisine && restaurant.cuisineType !== 'neuvedeno' && 
-          !restaurant.cuisineType.toLowerCase().includes(filters.cuisine)) {
-        return false;
-      }
-      
-      // Filtr podle jídla
-      if (filters.hasFood && !restaurant.hasFood) {
-        return false;
-      }
-      
-      // Filtr podle hodnocení
-      if (restaurant.rating < filters.minRating) {
-        return false;
-      }
-      
-      // Filtr podle kvality čepování
-      if (restaurant.beerQuality < filters.minBeerQuality) {
-        return false;
-      }
-      
-      return true;
-    }
-
-    function getVenueType(tags) {
-      if (tags.amenity === 'restaurant') return 'restaurant';
-      if (tags.amenity === 'pub') return 'pub';
-      if (tags.amenity === 'bar') return 'bar';
-      if (tags.craft === 'brewery') return 'brewery';
-      if (tags.brewery) return 'brewery';
-      return 'pub';
-    }
-
-    function getBeerInfo(tags) {
-      const beerTags = [
-        tags.brewery,
-        tags.beer,
-        tags['drink:beer'],
-        tags.drink
-      ];
-      
-      for (let tag of beerTags) {
-        if (tag && tag.trim() !== '') {
-          return tag.replace(/;/g, ', ').trim();
-        }
-      }
-      
-      if (tags.description) {
-        const beerBrands = [
-          'Pilsner Urquell', 'Budweiser', 'Budvar', 'Staropramen', 
-          'Kozel', 'Gambrinus', 'Bernard', 'Radegast', 'Krušovice',
-          'Stella Artois', 'Heineken', 'Guinness', 'Svijany'
-        ];
-        
-        const descLower = tags.description.toLowerCase();
-        const foundBeers = beerBrands.filter(beer => 
-          descLower.includes(beer.toLowerCase())
-        );
-        
-        if (foundBeers.length > 0) {
-          return foundBeers.join(', ');
-        }
-      }
-      
-      return 'neuvedeno';
-    }
-
-    function getBeerType(tags) {
-      // Simulace typu piva - v reálné aplikaci by se četlo z tagů
-      const types = [];
-      if (Math.random() > 0.7) types.push('tankové');
-      if (Math.random() > 0.3) types.push('sudové');
-      if (Math.random() > 0.8) types.push('lahvové');
-      return types.length > 0 ? types : ['sudové'];
-    }
-
-    function getBeerQuality(tags) {
-      // Simulované hodnocení kvality čepování (1-5)
-      return Math.floor(Math.random() * 3) + 3;
-    }
-
-    function getRandomRating() {
-      // Simulované hodnocení (3.0-5.0)
-      return (Math.random() * 2 + 3).toFixed(1);
-    }
-
-    function checkHasFood(tags) {
-      return tags.cuisine || tags.food === 'yes' || tags.amenity === 'restaurant';
-    }
-
-    function getCuisineType(tags) {
-      if (!tags.cuisine) {
-        return 'neuvedeno';
-      }
-      
-      const cuisineTranslations = {
-        'czech': 'česká',
-        'italian': 'italská',
-        'pizza': 'pizza',
-        'asian': 'asijská',
-        'chinese': 'čínská',
-        'vietnamese': 'vietnamská',
-        'japanese': 'japonská',
-        'sushi': 'sushi',
-        'indian': 'indická',
-        'mexican': 'mexická',
-        'burger': 'burgery',
-        'american': 'americká',
-        'french': 'francouzská',
-        'german': 'německá',
-        'greek': 'řecká',
-        'spanish': 'španělská',
-        'thai': 'thajská',
-        'kebab': 'kebab',
-        'turkish': 'turecká',
-        'regional': 'regionální',
-        'international': 'mezinárodní',
-        'steak_house': 'steaková',
-        'seafood': 'mořské plody',
-        'vegetarian': 'vegetariánská',
-        'vegan': 'veganská'
-      };
-      
-      const cuisines = tags.cuisine.split(/[;,]/).map(c => c.trim());
-      const translated = cuisines.map(cuisine => {
-        const lower = cuisine.toLowerCase();
-        return cuisineTranslations[lower] || cuisine;
-      });
-      
-      return translated.join(', ');
+      allRestaurants = restaurants;
+      displayResults(restaurants);
     }
 
     function displayResults(restaurants) {
-      const resultsDiv = document.getElementById('results');
-      
-      // Odstranit staré markery
+      // Vyčistit markery
       markers.forEach(m => map.removeLayer(m));
       markers = [];
 
+      // Zobrazit výsledky
+      const resultsDiv = document.getElementById('results');
+      
       if (restaurants.length === 0) {
-        resultsDiv.innerHTML = '<div class="error-message">Žádné podniky nebyly nalezeny. Zkuste změnit filtry.</div>';
+        resultsDiv.innerHTML = '<div class="message error-message">Žádné podniky nebyly nalezeny. Zkuste změnit filtry.</div>';
         return;
       }
 
-      // Seřadit podle vzdálenosti
-      restaurants.sort((a, b) => {
-        const distA = getDistanceFromLatLonInKm(userLocation.lat, userLocation.lon, a.lat, a.lon);
-        const distB = getDistanceFromLatLonInKm(userLocation.lat, userLocation.lon, b.lat, b.lon);
-        return distA - distB;
-      });
-
-      // Vytvořit HTML pro výsledky
+      // Header s počtem výsledků
       let html = `
         <div class="results-header">
-          <h3>Nalezeno ${restaurants.length} podniků</h3>
-          <select class="sort-select" onchange="sortResults(this.value)">
+          <h3>Nalezeno: ${restaurants.length}</h3>
+          <select class="sort-button" onchange="sortResults(this.value)">
             <option value="distance">Vzdálenost</option>
-            <option value="rating">Hodnocení</option>
-            <option value="quality">Kvalita čepování</option>
+            <option value="name">Název</option>
           </select>
         </div>
       `;
 
       resultsDiv.innerHTML = html;
 
+      // Přidat restaurace
       restaurants.forEach((restaurant, index) => {
-        const name = restaurant.tags.name || 'Bez názvu';
-        const address = formatAddress(restaurant.tags);
-        const distance = getDistanceFromLatLonInKm(
-          userLocation.lat, 
-          userLocation.lon, 
-          restaurant.lat, 
-          restaurant.lon
-        ).toFixed(2);
-        
-        const openingHours = restaurant.tags.opening_hours || '';
+        // Získat informace
+        const address = getAddress(restaurant.tags);
+        const cuisine = getCuisine(restaurant.tags);
+        const beerInfo = getBeerInfo(restaurant.tags);
         const phone = restaurant.tags.phone || '';
         const website = restaurant.tags.website || '';
+        const openingHours = restaurant.tags.opening_hours || '';
         
-        const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${restaurant.lat},${restaurant.lon}`;
-
-        // Vytvořit kartu restaurace
+        // Vytvořit kartu
         const card = document.createElement('div');
         card.className = 'restaurant-card';
         
-        // Vytvořit HTML pro typ piva
-        let beerTypeBadges = '';
-        restaurant.beerType.forEach(type => {
-          let badgeClass = 'sudove';
-          if (type === 'tankové') badgeClass = 'tankove';
-          if (type === 'lahvové') badgeClass = 'lahvove';
-          beerTypeBadges += `<span class="beer-type-badge ${badgeClass}">${type}</span>`;
-        });
-
-        // Vytvořit hvězdičky pro kvalitu čepování
-        const qualityStars = '⭐'.repeat(restaurant.beerQuality);
+        // Určit typ piva badges
+        let beerBadges = '';
+        if (beerInfo !== 'neuvedeno') {
+          const beers = beerInfo.split(',').map(b => b.trim());
+          beers.forEach(beer => {
+            if (beer) {
+              beerBadges += `<span class="beer-badge">${beer}</span>`;
+            }
+          });
+        }
 
         card.innerHTML = `
-          ${restaurant.rating >= 4.5 ? `<div class="rating-badge">${restaurant.rating}</div>` : ''}
           <div class="restaurant-header">
-            <div class="restaurant-name">${name}</div>
-            <span class="restaurant-type">${getVenueTypeLabel(restaurant.venueType)}</span>
+            <div class="restaurant-name">${restaurant.name}</div>
+            <span class="restaurant-type">${getVenueTypeLabel(restaurant.type)}</span>
           </div>
           <div class="restaurant-info">
             📍 ${address}<br>
-            🍴 <strong>Kuchyně:</strong> ${restaurant.cuisineType}<br>
-            🍺 <strong>Pivo:</strong> ${restaurant.beerInfo} ${beerTypeBadges}<br>
-            <div class="beer-quality">
-              <strong>Kvalita čepování:</strong> <span class="stars">${qualityStars}</span>
-            </div>
+            🍴 <strong>Kuchyně:</strong> ${cuisine}<br>
+            🍺 <strong>Pivo:</strong> ${beerInfo}
+            ${beerBadges ? `<div class="beer-badges">${beerBadges}</div>` : ''}
             ${phone ? `📞 ${phone}<br>` : ''}
-            ${website ? `🌐 <a href="${website}" target="_blank">Web</a><br>` : ''}
-            ${openingHours ? `🕐 ${openingHours}` : ''}
+            ${openingHours ? `🕐 ${openingHours}<br>` : ''}
           </div>
-          <span class="restaurant-distance">${distance} km</span>
-          <a href="${navUrl}" target="_blank" class="navigate-btn">Navigovat</a>
+          <div class="restaurant-actions">
+            <div class="restaurant-distance">${restaurant.distance.toFixed(2)} km</div>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${restaurant.lat},${restaurant.lon}" 
+               target="_blank" class="navigate-btn">Navigovat</a>
+          </div>
         `;
         
-        card.onclick = () => {
+        card.onclick = function() {
+          // Přepnout na mapu a zobrazit marker
+          switchTabDirect('map');
           map.setView([restaurant.lat, restaurant.lon], 16);
           markers[index].openPopup();
         };
@@ -1125,113 +1342,181 @@
         resultsDiv.appendChild(card);
 
         // Přidat marker na mapu
-        const markerColor = restaurant.beerQuality >= 4 ? 'green' : 
-                           restaurant.beerQuality >= 3 ? 'orange' : 'red';
-        
         const markerIcon = L.divIcon({
-          html: `<div style="background: ${markerColor}; border: 2px solid white; border-radius: 50%; width: 15px; height: 15px;"></div>`,
-          iconSize: [15, 15],
-          className: 'restaurant-marker'
+          html: `<div style="background: ${restaurant.type === 'pub' ? '#8B4513' : '#D4A574'}; border: 2px solid white; border-radius: 50%; width: 12px; height: 12px;"></div>`,
+          iconSize: [12, 12],
+          className: 'venue-marker'
         });
 
         const marker = L.marker([restaurant.lat, restaurant.lon], { icon: markerIcon }).addTo(map)
           .bindPopup(`
-            <strong>${name}</strong><br>
+            <strong>${restaurant.name}</strong><br>
             ${address}<br>
-            <strong>Kuchyně:</strong> ${restaurant.cuisineType}<br>
-            <strong>Pivo:</strong> ${restaurant.beerInfo}<br>
-            <strong>Kvalita:</strong> ${qualityStars}<br>
-            <strong>Hodnocení:</strong> ${restaurant.rating}/5.0<br>
-            Vzdálenost: ${distance} km<br>
-            <a href="${navUrl}" target="_blank">Navigovat</a>
+            <strong>Kuchyně:</strong> ${cuisine}<br>
+            <strong>Pivo:</strong> ${beerInfo}<br>
+            <strong>Vzdálenost:</strong> ${restaurant.distance.toFixed(2)} km<br>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${restaurant.lat},${restaurant.lon}" target="_blank">Navigovat</a>
           `);
         
         markers.push(marker);
       });
 
       // Přizpůsobit mapu
-      if (markers.length > 0) {
+      if (markers.length > 0 && currentTab === 'map') {
         const group = L.featureGroup([...markers, userMarker]);
         map.fitBounds(group.getBounds().pad(0.1));
       }
     }
 
-    function getVenueTypeLabel(type) {
-      const labels = {
-        'restaurant': 'Restaurace',
-        'pub': 'Hospoda',
-        'bar': 'Bar',
-        'brewery': 'Pivovar',
-        'pivnice': 'Pivnice'
-      };
-      return labels[type] || 'Podnik';
-    }
+    function switchTabDirect(tab) {
+      // Aktualizovat taby
+      document.querySelectorAll('.tab-button').forEach((btn, index) => {
+        btn.classList.remove('active');
+        if ((tab === 'map' && index === 0) || 
+            (tab === 'filters' && index === 1) || 
+            (tab === 'results' && index === 2)) {
+          btn.classList.add('active');
+        }
+      });
 
-    function formatAddress(tags) {
-      const parts = [];
-      if (tags['addr:street']) parts.push(tags['addr:street']);
-      if (tags['addr:housenumber']) parts.push(tags['addr:housenumber']);
-      if (tags['addr:city']) parts.push(tags['addr:city']);
-      if (tags['addr:postcode']) parts.push(tags['addr:postcode']);
-      return parts.join(', ') || 'Adresa není uvedena';
-    }
+      // Zobrazit sekci
+      document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+      });
 
-    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
+      if (tab === 'map') {
+        document.getElementById('mapSection').classList.add('active');
+        setTimeout(() => map.invalidateSize(), 100);
+      } else if (tab === 'filters') {
+        document.getElementById('filtersSection').classList.add('active');
+      } else if (tab === 'results') {
+        document.getElementById('resultsSection').classList.add('active');
+      }
+
+      currentTab = tab;
     }
 
     function sortResults(sortBy) {
       let sorted = [...allRestaurants];
       
       if (sortBy === 'distance') {
-        sorted.sort((a, b) => {
-          const distA = getDistanceFromLatLonInKm(userLocation.lat, userLocation.lon, a.lat, a.lon);
-          const distB = getDistanceFromLatLonInKm(userLocation.lat, userLocation.lon, b.lat, b.lon);
-          return distA - distB;
-        });
-      } else if (sortBy === 'rating') {
-        sorted.sort((a, b) => b.rating - a.rating);
-      } else if (sortBy === 'quality') {
-        sorted.sort((a, b) => b.beerQuality - a.beerQuality);
+        sorted.sort((a, b) => a.distance - b.distance);
+      } else if (sortBy === 'name') {
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
       }
       
       displayResults(sorted);
     }
 
-    function resetFilters() {
-      document.getElementById('location').value = '';
-      document.getElementById('radius').value = 5;
-      document.getElementById('radiusValue').textContent = '5 km';
-      document.getElementById('beer').selectedIndex = 0;
-      document.getElementById('cuisine').value = '';
-      document.getElementById('beerQuality').value = 1;
-      document.getElementById('beerQualityValue').textContent = '⭐';
-      document.getElementById('minRating').value = 1;
-      document.getElementById('minRatingValue').textContent = '1.0';
-      
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        if (cb.classList.contains('venue-type')) {
-          cb.checked = true;
-        } else {
-          cb.checked = false;
-        }
-      });
-      
-      document.getElementById('tankove').checked = true;
-      document.getElementById('sudove').checked = true;
-      
-      findRestaurants();
+    function checkBeer(tags, beerFilter) {
+      const beerLower = beerFilter.toLowerCase();
+      return (tags.brewery && tags.brewery.toLowerCase().includes(beerLower)) ||
+             (tags.beer && tags.beer.toLowerCase().includes(beerLower)) ||
+             (tags['drink:beer'] && tags['drink:beer'].toLowerCase().includes(beerLower)) ||
+             (tags.description && tags.description.toLowerCase().includes(beerLower));
     }
 
-    function showError(message) {
-      const resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = `<div class="error-message">${message}</div>`;
+    function getBeerInfo(tags) {
+      const beerSources = [tags.brewery, tags.beer, tags['drink:beer']];
+      for (let source of beerSources) {
+        if (source) {
+          // Očistit a formátovat
+          return source.replace(/;/g, ', ').replace(/\|/g, ', ').trim();
+        }
+      }
+      return 'neuvedeno';
     }
+
+    function getCuisine(tags) {
+      if (!tags.cuisine) return 'neuvedeno';
+      
+      const translations = {
+        'czech': 'česká',
+        'italian': 'italská',
+        'pizza': 'pizza',
+        'asian': 'asijská',
+        'burger': 'burgery',
+        'vietnamese': 'vietnamská',
+        'chinese': 'čínská',
+        'japanese': 'japonská',
+        'indian': 'indická',
+        'mexican': 'mexická'
+      };
+      
+      const cuisines = tags.cuisine.split(/[;,]/).map(c => c.trim());
+      const translated = cuisines.map(cuisine => {
+        const lower = cuisine.toLowerCase();
+        return translations[lower] || cuisine;
+      });
+      
+      return translated.join(', ');
+    }
+
+    function getAddress(tags) {
+      const parts = [];
+      if (tags['addr:street']) {
+        if (tags['addr:housenumber']) {
+          parts.push(`${tags['addr:street']} ${tags['addr:housenumber']}`);
+        } else {
+          parts.push(tags['addr:street']);
+        }
+      }
+      if (tags['addr:city']) parts.push(tags['addr:city']);
+      return parts.join(', ') || 'Adresa neuvedena';
+    }
+
+    function getVenueType(tags) {
+      if (tags.amenity === 'restaurant') return 'restaurant';
+      if (tags.amenity === 'pub') return 'pub';
+      if (tags.amenity === 'bar') return 'bar';
+      return 'pub';
+    }
+
+    function getVenueTypeLabel(type) {
+      const labels = {
+        'restaurant': 'Restaurace',
+        'pub': 'Hospoda',
+        'bar': 'Bar'
+      };
+      return labels[type] || 'Podnik';
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function resetAllFilters() {
+      // Reset vzdálenost
+      document.getElementById('radius').value = 3;
+      document.getElementById('radiusValue').textContent = '3 km';
+      
+      // Reset piva
+      document.getElementById('beer-all').checked = true;
+      toggleAllBeers(document.getElementById('beer-all'));
+      
+      // Reset typ podniku
+      document.getElementById('type-restaurant').checked = true;
+      document.getElementById('type-pub').checked = true;
+      document.getElementById('type-bar').checked = true;
+      
+      // Aktualizovat styly checkboxů
+      document.querySelectorAll('.checkbox-label input').forEach(cb => {
+        updateCheckboxStyle(cb);
+      });
+      
+      // Reset kuchyně
+      document.getElementById('cuisine').value = '';
+      
+      // Nové vyhledávání
+      searchRestaurants();
+    }
+  </script>
+</body>
+</html>
