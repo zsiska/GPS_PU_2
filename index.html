@@ -1,758 +1,11 @@
-<!DOCTYPE html>
-<html lang="cs">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#D4A574">
-  <title>Pivní mapa - Najdi nejlepší pivo v okolí</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
-      min-height: 100vh;
-      overflow-x: hidden;
-      position: relative;
-    }
-
-    /* Mobilní container */
-    .mobile-container {
-      max-width: 100%;
-      background: white;
-      min-height: 100vh;
-      position: relative;
-    }
-
-    /* Header pro mobil */
-    .header {
-      background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
-      padding: env(safe-area-inset-top, 20px) 15px 15px 15px;
-      color: white;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    }
-
-    .header h1 {
-      font-size: 1.3em;
-      font-weight: 600;
-      text-align: center;
-      margin-bottom: 8px;
-    }
-
-    .location-status {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 6px 12px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 20px;
-      font-size: 0.85em;
-      backdrop-filter: blur(10px);
-    }
-
-    /* Mobilní navigace - taby */
-    .mobile-tabs {
-      display: flex;
-      background: white;
-      border-bottom: 1px solid #e9ecef;
-      position: sticky;
-      top: 85px;
-      z-index: 99;
-    }
-
-    .tab-button {
-      flex: 1;
-      padding: 12px;
-      background: white;
-      border: none;
-      font-size: 0.9em;
-      font-weight: 500;
-      color: #6c757d;
-      position: relative;
-      transition: all 0.3s ease;
-    }
-
-    .tab-button.active {
-      color: #D4A574;
-    }
-
-    .tab-button.active::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: #D4A574;
-    }
-
-    /* Content sections */
-    .content-section {
-      display: none;
-      min-height: calc(100vh - 140px);
-    }
-
-    .content-section.active {
-      display: block;
-    }
-
-    /* Mapa sekce */
-    #map {
-      height: calc(100vh - 140px);
-      width: 100%;
-    }
-
-    /* Filtry sekce */
-    .filters-section {
-      padding: 15px;
-      padding-bottom: env(safe-area-inset-bottom, 80px);
-    }
-
-    .filter-card {
-      background: #f8f9fa;
-      border-radius: 12px;
-      padding: 15px;
-      margin-bottom: 15px;
-    }
-
-    .filter-card h3 {
-      color: #8B4513;
-      font-size: 1em;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .filter-group {
-      margin-bottom: 15px;
-    }
-
-    .filter-group label {
-      display: block;
-      margin-bottom: 8px;
-      color: #495057;
-      font-weight: 500;
-      font-size: 0.9em;
-    }
-
-    .filter-group input,
-    .filter-group select {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #e9ecef;
-      border-radius: 8px;
-      font-size: 16px; /* Zabrání zoomu na iOS */
-      transition: all 0.3s ease;
-      background: white;
-      -webkit-appearance: none;
-    }
-
-    .filter-group select {
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      background-size: 20px;
-      padding-right: 40px;
-    }
-
-    .filter-group input:focus,
-    .filter-group select:focus {
-      outline: none;
-      border-color: #D4A574;
-      box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
-    }
-
-    /* Checkbox skupiny */
-    .checkbox-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background: white;
-      border: 2px solid #e9ecef;
-      border-radius: 20px;
-      font-size: 0.9em;
-      transition: all 0.2s ease;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .checkbox-label input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      margin: 0;
-    }
-
-    .checkbox-label.checked {
-      background: #D4A574;
-      color: white;
-      border-color: #D4A574;
-    }
-
-    /* Range slider */
-    .range-group {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .range-value {
-      min-width: 60px;
-      text-align: center;
-      font-weight: 600;
-      color: #D4A574;
-      font-size: 1em;
-    }
-
-    input[type="range"] {
-      flex: 1;
-      height: 6px;
-      background: #dee2e6;
-      border-radius: 3px;
-      outline: none;
-      -webkit-appearance: none;
-    }
-
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 24px;
-      height: 24px;
-      background: #D4A574;
-      cursor: pointer;
-      border-radius: 50%;
-      border: 3px solid white;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
-
-    /* Seznam výsledků */
-    .results-section {
-      padding: 15px;
-      padding-bottom: env(safe-area-inset-bottom, 80px);
-    }
-
-    .results-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      padding: 10px 0;
-    }
-
-    .results-header h3 {
-      color: #495057;
-      font-size: 1.1em;
-    }
-
-    .sort-button {
-      padding: 6px 12px;
-      background: #f8f9fa;
-      border: 1px solid #dee2e6;
-      border-radius: 20px;
-      font-size: 0.85em;
-      color: #495057;
-    }
-
-    .restaurant-card {
-      background: white;
-      border-radius: 12px;
-      padding: 15px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      transition: all 0.3s ease;
-      cursor: pointer;
-      position: relative;
-    }
-
-    .restaurant-card:active {
-      transform: scale(0.98);
-    }
-
-    .restaurant-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 10px;
-    }
-
-    .restaurant-name {
-      font-weight: 600;
-      color: #212529;
-      font-size: 1.05em;
-      flex: 1;
-      padding-right: 10px;
-    }
-
-    .restaurant-type {
-      background: #8B4513;
-      color: white;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 0.75em;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .restaurant-info {
-      color: #6c757d;
-      font-size: 0.9em;
-      line-height: 1.6;
-      margin-bottom: 10px;
-    }
-
-    .restaurant-info strong {
-      color: #495057;
-    }
-
-    .beer-badges {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin: 8px 0;
-    }
-
-    .beer-badge {
-      display: inline-block;
-      background: #28a745;
-      color: white;
-      padding: 3px 8px;
-      border-radius: 10px;
-      font-size: 0.75em;
-    }
-
-    .restaurant-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .restaurant-distance {
-      flex: 1;
-      background: #f8f9fa;
-      color: #8B4513;
-      padding: 8px;
-      border-radius: 8px;
-      font-size: 0.9em;
-      font-weight: 600;
-      text-align: center;
-    }
-
-    .navigate-btn {
-      flex: 1;
-      background: #28a745;
-      color: white;
-      padding: 8px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-size: 0.9em;
-      font-weight: 600;
-      text-align: center;
-      transition: background 0.2s ease;
-    }
-
-    .navigate-btn:active {
-      background: #218838;
-    }
-
-    /* Floating action button */
-    .fab-container {
-      position: fixed;
-      bottom: env(safe-area-inset-bottom, 20px);
-      right: 20px;
-      z-index: 90;
-    }
-
-    .fab {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
-      color: white;
-      border: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      font-size: 1.5em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-
-    .fab:active {
-      transform: scale(0.9);
-    }
-
-    /* Tlačítka */
-    .search-btn {
-      width: 100%;
-      padding: 15px;
-      background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-size: 1em;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin-top: 20px;
-    }
-
-    .search-btn:active {
-      transform: scale(0.98);
-    }
-
-    .reset-btn {
-      width: 100%;
-      padding: 12px;
-      background: transparent;
-      color: #8B4513;
-      border: 2px solid #8B4513;
-      border-radius: 12px;
-      font-size: 0.95em;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin-top: 10px;
-    }
-
-    .reset-btn:active {
-      background: #8B4513;
-      color: white;
-    }
-
-    /* Loading state */
-    .loading {
-      text-align: center;
-      padding: 40px 20px;
-      color: #6c757d;
-    }
-
-    .spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #D4A574;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 15px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Error a success messages */
-    .message {
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      font-size: 0.9em;
-    }
-
-    .error-message {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-
-    .success-message {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-
-    /* Desktop responsive */
-    @media (min-width: 768px) {
-      .mobile-container {
-        max-width: 768px;
-        margin: 0 auto;
-        box-shadow: 0 0 40px rgba(0,0,0,0.2);
-      }
-
-      .header h1 {
-        font-size: 1.8em;
-      }
-
-      .mobile-tabs {
-        display: none;
-      }
-
-      .content-section {
-        display: block !important;
-      }
-
-      #map {
-        height: 500px;
-        border-radius: 12px;
-        margin: 15px;
-      }
-
-      .filters-section {
-        max-width: 600px;
-        margin: 0 auto;
-      }
-
-      .results-section {
-        max-width: 600px;
-        margin: 0 auto;
-      }
-
-      .fab-container {
-        display: none;
-      }
-    }
-
-    /* Landscape mode adjustments */
-    @media (orientation: landscape) and (max-height: 500px) {
-      .header {
-        padding: 10px 15px;
-      }
-
-      .header h1 {
-        font-size: 1.1em;
-        margin-bottom: 5px;
-      }
-
-      #map {
-        height: calc(100vh - 100px);
-      }
-    }
-
-    /* iOS specific fixes */
-    @supports (-webkit-touch-callout: none) {
-      input[type="text"],
-      input[type="number"],
-      select {
-        font-size: 16px !important;
-      }
-    }
-
-    /* Multi-select pro značky piva */
-    .beer-select-container {
-      position: relative;
-    }
-
-    .beer-select-display {
-      padding: 12px;
-      border: 2px solid #e9ecef;
-      border-radius: 8px;
-      background: white;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .beer-select-display.active {
-      border-color: #D4A574;
-    }
-
-    .beer-select-text {
-      flex: 1;
-      color: #495057;
-      font-size: 0.95em;
-    }
-
-    .beer-select-arrow {
-      width: 20px;
-      height: 20px;
-      transition: transform 0.3s ease;
-    }
-
-    .beer-select-display.active .beer-select-arrow {
-      transform: rotate(180deg);
-    }
-
-    .beer-select-dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: white;
-      border: 2px solid #e9ecef;
-      border-top: none;
-      border-radius: 0 0 8px 8px;
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 10;
-      display: none;
-    }
-
-    .beer-select-dropdown.active {
-      display: block;
-    }
-
-    .beer-option {
-      padding: 10px 12px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      transition: background 0.2s ease;
-    }
-
-    .beer-option:hover {
-      background: #f8f9fa;
-    }
-
-    .beer-option.selected {
-      background: #fff3e0;
-    }
-
-    .beer-option input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-    }
-
-    .beer-option label {
-      flex: 1;
-      cursor: pointer;
-      margin: 0;
-    }
-  </style>
-</head>
-<body>
-  <div class="mobile-container">
-    <div class="header">
-      <h1>🍺 Pivní mapa</h1>
-      <div class="location-status" id="locationStatus">
-        <span id="locationText">📍 Získávám polohu...</span>
-      </div>
-    </div>
-
-    <!-- Mobilní taby -->
-    <div class="mobile-tabs">
-      <button class="tab-button active" onclick="switchTab('map')">🗺️ Mapa</button>
-      <button class="tab-button" onclick="switchTab('filters')">⚙️ Filtry</button>
-      <button class="tab-button" onclick="switchTab('results')">📋 Seznam</button>
-    </div>
-
-    <!-- Mapa -->
-    <div id="mapSection" class="content-section active">
-      <div id="map"></div>
-    </div>
-
-    <!-- Filtry -->
-    <div id="filtersSection" class="content-section">
-      <div class="filters-section">
-        <!-- Vzdálenost -->
-        <div class="filter-card">
-          <h3>📍 Vzdálenost</h3>
-          <div class="filter-group">
-            <label>Okruh vyhledávání</label>
-            <div class="range-group">
-              <input type="range" id="radius" min="0.5" max="20" value="3" step="0.5">
-              <span class="range-value" id="radiusValue">3 km</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Značky piva -->
-        <div class="filter-card">
-          <h3>🍺 Značky piva</h3>
-          <div class="filter-group">
-            <div class="beer-select-container">
-              <div class="beer-select-display" id="beerSelectDisplay" onclick="toggleBeerDropdown()">
-                <span class="beer-select-text" id="beerSelectText">Všechny značky</span>
-                <svg class="beer-select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-              <div class="beer-select-dropdown" id="beerSelectDropdown">
-                <div class="beer-option">
-                  <input type="checkbox" id="beer-all" checked onchange="toggleAllBeers(this)">
-                  <label for="beer-all">Všechny značky</label>
-                </div>
-                <div class="beer-option">
-                  <input type="checkbox" id="beer-pilsner" class="beer-checkbox">
-                  <label for="beer-pilsner">Pilsner Urquell</label>
-                </div>
-                <div class="beer-option">
-                  <input type="checkbox" id="beer-budvar" class="beer-checkbox">
-                  <label for="beer-budvar">Budweiser Budvar</label>
-                </div>
-                <div class="beer-option">
-                  <input type="checkbox" id="beer-staropramen" class="beer-checkbox">
-                  <label for="beer-staropramen">Staropramen</label>
-                </div>
-                <div class="beer-option">
-                  <input type="checkbox" id="beer-kozel" class="beer-checkbox">
-                  <label for="beer-kozel">Kozel</label>
-                </div>
-                <div class="beer-option">
-                  <input type="checkbox" id="beer-gambrinus" class="beer-checkbox">
-                  <label for="beer-gambrinus">Gambrinus</label>
-                </div>
-                <div class="beer-option">
-                  <input type="checkbox" id="beer-bernard" class="beer-checkbox">
-                  <label for="beer-bernard">Bernard</label>
-                </div>
-                <div class="beer-option">
-                  <input type="checkbox" id="beer-radegast" class="beer-checkbox">
-                  <label for="beer-radegast">Radegast</label>
-                </div>
-                <div class="beer-option">
-                  <input type="checkbox" id="beer-krusovice" class="beer-checkbox">
-                  <label for="beer-krusovice">Krušovice</label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Typ podniku -->
-        <div class="filter-card">
-          <h3>🏠 Typ podniku</h3>
-          <div class="checkbox-group">
-            <label class="checkbox-label checked">
-              <input type="checkbox" id="type-restaurant" checked onchange="updateCheckboxStyle(this)">
-              <span>Restaurace</span>
+<span class="checkmark"></span>
+              <span>Otevřeno po 22h</span>
             </label>
-            <label class="checkbox-label checked">
-              <input type="checkbox" id="type-pub" checked onchange="updateCheckboxStyle(this)">
-              <span>Hospoda</span>
+            <label class="checkbox-label">
+              <input type="checkbox" id="open-weekend">
+              <span class="checkmark"></span>
+              <span>Víkendy</span>
             </label>
-            <label class="checkbox-label checked">
-              <input type="checkbox" id="type-bar" checked onchange="updateCheckboxStyle(this)">
-              <span>Bar</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Kuchyně -->
-        <div class="filter-card">
-          <h3>🍽️ Kuchyně</h3>
-          <div class="filter-group">
-            <select id="cuisine">
-              <option value="">Všechny typy</option>
-              <option value="czech">Česká</option>
-              <option value="italian">Italská</option>
-              <option value="asian">Asijská</option>
-              <option value="pizza">Pizza</option>
-              <option value="burger">Burgery</option>
-              <option value="vietnamese">Vietnamská</option>
-              <option value="chinese">Čínská</option>
-            </select>
           </div>
         </div>
 
@@ -777,7 +30,7 @@
     </div>
 
     <!-- Floating Action Button pro mobilní zařízení -->
-    <div class="fab-container">
+    <div class="fab-container" id="fabContainer">
       <button class="fab" onclick="searchRestaurants()">🔍</button>
     </div>
   </div>
@@ -823,7 +76,9 @@
       'beer-gambrinus': 'Gambrinus',
       'beer-bernard': 'Bernard',
       'beer-radegast': 'Radegast',
-      'beer-krusovice': 'Krušovice'
+      'beer-krusovice': 'Krušovice',
+      'beer-svijany': 'Svijany',
+      'beer-primator': 'Primátor'
     };
 
     function initializeApp() {
@@ -842,9 +97,14 @@
     }
 
     function setupEventListeners() {
-      // Range slider
+      // Range sliders
       document.getElementById('radius').addEventListener('input', function() {
         document.getElementById('radiusValue').textContent = this.value + ' km';
+      });
+
+      document.getElementById('minRating').addEventListener('input', function() {
+        const stars = '⭐'.repeat(Math.ceil(this.value));
+        document.getElementById('minRatingValue').textContent = stars;
       });
 
       // Beer checkboxes
@@ -872,25 +132,22 @@
         section.classList.remove('active');
       });
 
+      // Skrýt/zobrazit FAB
+      const fabContainer = document.getElementById('fabContainer');
+      
       if (tab === 'map') {
         document.getElementById('mapSection').classList.add('active');
         setTimeout(() => map.invalidateSize(), 100);
+        fabContainer.classList.remove('hidden');
       } else if (tab === 'filters') {
         document.getElementById('filtersSection').classList.add('active');
+        fabContainer.classList.add('hidden');
       } else if (tab === 'results') {
         document.getElementById('resultsSection').classList.add('active');
+        fabContainer.classList.add('hidden');
       }
 
       currentTab = tab;
-    }
-
-    function updateCheckboxStyle(checkbox) {
-      const label = checkbox.closest('.checkbox-label');
-      if (checkbox.checked) {
-        label.classList.add('checked');
-      } else {
-        label.classList.remove('checked');
-      }
     }
 
     function toggleBeerDropdown() {
@@ -1096,13 +353,13 @@
       const radiusMeters = radius * 1000;
       let amenityFilters = [];
       
-      if (document.getElementById('type-restaurant').checked) {
+      if (document.getElementById('venue-restaurant').checked) {
         amenityFilters.push('["amenity"="restaurant"]');
       }
-      if (document.getElementById('type-pub').checked) {
+      if (document.getElementById('venue-pub').checked) {
         amenityFilters.push('["amenity"="pub"]');
       }
-      if (document.getElementById('type-bar').checked) {
+      if (document.getElementById('venue-bar').checked) {
         amenityFilters.push('["amenity"="bar"]');
       }
 
@@ -1150,14 +407,6 @@
       })
       .catch(error => {
         console.error('Chyba při načítání:', error);
-        
-        // Zkusit alternativní endpoint
-        const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-        const alternativeUrl = corsProxy + overpassUrl;
-        
-        console.log('Zkouším alternativní přístup...');
-        
-        // Zobrazit simulovaná data pro demonstraci
         showDemoData(resultsDiv);
       });
     }
@@ -1176,7 +425,10 @@
             cuisine: 'czech',
             brewery: 'Pilsner Urquell',
             amenity: 'pub',
-            opening_hours: 'Mo-Su 15:00-23:00'
+            opening_hours: 'Mo-Su 15:00-23:00',
+            phone: '+420 222 221 111',
+            website: 'https://www.uzlatehotygra.cz',
+            email: 'info@uzlatehotygra.cz'
           },
           distance: 0.5,
           type: 'pub'
@@ -1192,7 +444,10 @@
             cuisine: 'czech',
             brewery: 'Pilsner Urquell, Kozel',
             amenity: 'restaurant',
-            opening_hours: 'Mo-Su 11:00-24:00'
+            opening_hours: 'Mo-Su 11:00-24:00',
+            phone: '+420 257 212 014',
+            website: 'https://lokal.ambi.cz',
+            'contact:facebook': 'lokalubilekuzelky'
           },
           distance: 0.8,
           type: 'restaurant'
@@ -1208,7 +463,9 @@
             cuisine: 'czech',
             brewery: 'vlastní výroba',
             amenity: 'pub',
-            opening_hours: 'Mo-Su 11:00-23:30'
+            opening_hours: 'Mo-Su 11:00-23:30',
+            phone: '+420 296 216 666',
+            website: 'https://www.pivovarskydum.com'
           },
           distance: 1.2,
           type: 'pub'
@@ -1216,7 +473,7 @@
       ];
 
       console.log('Zobrazuji ukázková data');
-      resultsDiv.innerHTML = '<div class="message" style="background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; padding: 10px; border-radius: 8px; margin-bottom: 15px;">⚠️ Používám ukázková data (problém s připojením k serveru)</div>';
+      resultsDiv.innerHTML = '<div class="message warning-message">⚠️ Používám ukázková data (problém s připojením k serveru)</div>';
       
       displayResults(demoRestaurants);
     }
@@ -1293,8 +550,11 @@
         const address = getAddress(restaurant.tags);
         const cuisine = getCuisine(restaurant.tags);
         const beerInfo = getBeerInfo(restaurant.tags);
-        const phone = restaurant.tags.phone || '';
-        const website = restaurant.tags.website || '';
+        const phone = restaurant.tags.phone || restaurant.tags['contact:phone'] || '';
+        const website = restaurant.tags.website || restaurant.tags['contact:website'] || '';
+        const email = restaurant.tags.email || restaurant.tags['contact:email'] || '';
+        const facebook = restaurant.tags['contact:facebook'] || '';
+        const instagram = restaurant.tags['contact:instagram'] || '';
         const openingHours = restaurant.tags.opening_hours || '';
         
         // Vytvořit kartu
@@ -1305,7 +565,7 @@
         let beerBadges = '';
         if (beerInfo !== 'neuvedeno') {
           const beers = beerInfo.split(',').map(b => b.trim());
-          beers.forEach(beer => {
+          beers.slice(0, 3).forEach(beer => {
             if (beer) {
               beerBadges += `<span class="beer-badge">${beer}</span>`;
             }
@@ -1322,8 +582,13 @@
             🍴 <strong>Kuchyně:</strong> ${cuisine}<br>
             🍺 <strong>Pivo:</strong> ${beerInfo}
             ${beerBadges ? `<div class="beer-badges">${beerBadges}</div>` : ''}
-            ${phone ? `📞 ${phone}<br>` : ''}
-            ${openingHours ? `🕐 ${openingHours}<br>` : ''}
+            ${phone ? `📞 <a href="tel:${phone}">${phone}</a><br>` : ''}
+            ${email ? `📧 <a href="mailto:${email}">${email}</a><br>` : ''}
+            ${website ? `🌐 <a href="${website}" target="_blank">Web</a>` : ''}
+            ${facebook ? ` | <a href="https://facebook.com/${facebook}" target="_blank">FB</a>` : ''}
+            ${instagram ? ` | <a href="https://instagram.com/${instagram}" target="_blank">IG</a>` : ''}
+            ${website || facebook || instagram ? '<br>' : ''}
+            ${openingHours ? `🕐 ${formatOpeningHours(openingHours)}<br>` : ''}
           </div>
           <div class="restaurant-actions">
             <div class="restaurant-distance">${restaurant.distance.toFixed(2)} km</div>
@@ -1348,15 +613,19 @@
           className: 'venue-marker'
         });
 
+        const popupContent = `
+          <strong>${restaurant.name}</strong><br>
+          ${address}<br>
+          <strong>Kuchyně:</strong> ${cuisine}<br>
+          <strong>Pivo:</strong> ${beerInfo}<br>
+          ${phone ? `<strong>Tel:</strong> <a href="tel:${phone}">${phone}</a><br>` : ''}
+          ${website ? `<a href="${website}" target="_blank">Web</a><br>` : ''}
+          <strong>Vzdálenost:</strong> ${restaurant.distance.toFixed(2)} km<br>
+          <a href="https://www.google.com/maps/dir/?api=1&destination=${restaurant.lat},${restaurant.lon}" target="_blank">🗺️ Navigovat</a>
+        `;
+
         const marker = L.marker([restaurant.lat, restaurant.lon], { icon: markerIcon }).addTo(map)
-          .bindPopup(`
-            <strong>${restaurant.name}</strong><br>
-            ${address}<br>
-            <strong>Kuchyně:</strong> ${cuisine}<br>
-            <strong>Pivo:</strong> ${beerInfo}<br>
-            <strong>Vzdálenost:</strong> ${restaurant.distance.toFixed(2)} km<br>
-            <a href="https://www.google.com/maps/dir/?api=1&destination=${restaurant.lat},${restaurant.lon}" target="_blank">Navigovat</a>
-          `);
+          .bindPopup(popupContent);
         
         markers.push(marker);
       });
@@ -1366,6 +635,17 @@
         const group = L.featureGroup([...markers, userMarker]);
         map.fitBounds(group.getBounds().pad(0.1));
       }
+    }
+
+    function formatOpeningHours(hours) {
+      // Základní formátování otevírací doby
+      return hours.replace(/Mo/g, 'Po')
+                  .replace(/Tu/g, 'Út')
+                  .replace(/We/g, 'St')
+                  .replace(/Th/g, 'Čt')
+                  .replace(/Fr/g, 'Pá')
+                  .replace(/Sa/g, 'So')
+                  .replace(/Su/g, 'Ne');
     }
 
     function switchTabDirect(tab) {
@@ -1384,13 +664,18 @@
         section.classList.remove('active');
       });
 
+      const fabContainer = document.getElementById('fabContainer');
+
       if (tab === 'map') {
         document.getElementById('mapSection').classList.add('active');
         setTimeout(() => map.invalidateSize(), 100);
+        fabContainer.classList.remove('hidden');
       } else if (tab === 'filters') {
         document.getElementById('filtersSection').classList.add('active');
+        fabContainer.classList.add('hidden');
       } else if (tab === 'results') {
         document.getElementById('resultsSection').classList.add('active');
+        fabContainer.classList.add('hidden');
       }
 
       currentTab = tab;
@@ -1440,7 +725,13 @@
         'chinese': 'čínská',
         'japanese': 'japonská',
         'indian': 'indická',
-        'mexican': 'mexická'
+        'mexican': 'mexická',
+        'thai': 'thajská',
+        'greek': 'řecká',
+        'spanish': 'španělská',
+        'french': 'francouzská',
+        'american': 'americká',
+        'international': 'mezinárodní'
       };
       
       const cuisines = tags.cuisine.split(/[;,]/).map(c => c.trim());
@@ -1501,22 +792,980 @@
       document.getElementById('beer-all').checked = true;
       toggleAllBeers(document.getElementById('beer-all'));
       
-      // Reset typ podniku
-      document.getElementById('type-restaurant').checked = true;
-      document.getElementById('type-pub').checked = true;
-      document.getElementById('type-bar').checked = true;
+      // Reset typ piva
+      document.getElementById('type-tankove').checked = false;
+      document.getElementById('type-sudove').checked = false;
+      document.getElementById('type-lahvove').checked = false;
       
-      // Aktualizovat styly checkboxů
-      document.querySelectorAll('.checkbox-label input').forEach(cb => {
-        updateCheckboxStyle(cb);
-      });
+      // Reset typ podniku
+      document.getElementById('venue-restaurant').checked = true;
+      document.getElementById('venue-pub').checked = true;
+      document.getElementById('venue-bar').checked = true;
+      document.getElementById('venue-brewery').checked = false;
+      document.getElementById('venue-club').checked = false;
+      
+      // Reset služby
+      document.getElementById('service-food').checked = false;
+      document.getElementById('service-garden').checked = false;
+      document.getElementById('service-wifi').checked = false;
+      document.getElementById('service-parking').checked = false;
+      document.getElementById('service-cards').checked = false;
+      document.getElementById('service-wheelchair').checked = false;
       
       // Reset kuchyně
       document.getElementById('cuisine').value = '';
+      
+      // Reset hodnocení
+      document.getElementById('minRating').value = 1;
+      document.getElementById('minRatingValue').textContent = '⭐';
+      
+      // Reset otevírací doba
+      document.getElementById('open-now').checked = false;
+      document.getElementById('open-late').checked = false;
+      document.getElementById('open-weekend').checked = false;
       
       // Nové vyhledávání
       searchRestaurants();
     }
   </script>
 </body>
-</html>
+</html><!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#D4A574">
+  <title>Pivní mapa - Najdi nejlepší pivo v okolí</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Mobilní container */
+    .mobile-container {
+      max-width: 100%;
+      background: white;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Header pro mobil */
+    .header {
+      background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
+      padding: env(safe-area-inset-top, 20px) 15px 15px 15px;
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .header h1 {
+      font-size: 1.3em;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .location-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      font-size: 0.85em;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Mobilní navigace - taby */
+    .mobile-tabs {
+      display: flex;
+      background: white;
+      border-bottom: 1px solid #e9ecef;
+      position: sticky;
+      top: 85px;
+      z-index: 99;
+    }
+
+    .tab-button {
+      flex: 1;
+      padding: 12px;
+      background: white;
+      border: none;
+      font-size: 0.9em;
+      font-weight: 500;
+      color: #6c757d;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .tab-button.active {
+      color: #D4A574;
+    }
+
+    .tab-button.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: #D4A574;
+    }
+
+    /* Content sections */
+    .content-section {
+      display: none;
+      min-height: calc(100vh - 140px);
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    /* Mapa sekce */
+    #map {
+      height: calc(100vh - 140px);
+      width: 100%;
+    }
+
+    /* Filtry sekce */
+    .filters-section {
+      padding: 15px;
+      padding-bottom: env(safe-area-inset-bottom, 80px);
+    }
+
+    .filter-card {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .filter-card h3 {
+      color: #8B4513;
+      font-size: 1em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-group {
+      margin-bottom: 15px;
+    }
+
+    .filter-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #495057;
+      font-weight: 500;
+      font-size: 0.9em;
+    }
+
+    .filter-group input,
+    .filter-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 16px; /* Zabrání zoomu na iOS */
+      transition: all 0.3s ease;
+      background: white;
+      -webkit-appearance: none;
+    }
+
+    .filter-group select {
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 20px;
+      padding-right: 40px;
+    }
+
+    .filter-group input:focus,
+    .filter-group select:focus {
+      outline: none;
+      border-color: #D4A574;
+      box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
+    }
+
+    /* Checkbox skupiny - OPRAVENO */
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: white;
+      border: 2px solid #e9ecef;
+      border-radius: 20px;
+      font-size: 0.9em;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+      height: 0;
+      width: 0;
+    }
+
+    .checkbox-label .checkmark {
+      height: 20px;
+      width: 20px;
+      background-color: white;
+      border: 2px solid #dee2e6;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .checkbox-label input:checked ~ .checkmark {
+      background-color: #D4A574;
+      border-color: #D4A574;
+    }
+
+    .checkbox-label input:checked ~ .checkmark:after {
+      content: "✓";
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .checkbox-label input:checked ~ span {
+      color: #D4A574;
+      font-weight: 600;
+    }
+
+    /* Range slider */
+    .range-group {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .range-value {
+      min-width: 60px;
+      text-align: center;
+      font-weight: 600;
+      color: #D4A574;
+      font-size: 1em;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      background: #dee2e6;
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      background: #D4A574;
+      cursor: pointer;
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    /* Seznam výsledků */
+    .results-section {
+      padding: 15px;
+      padding-bottom: env(safe-area-inset-bottom, 80px);
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding: 10px 0;
+    }
+
+    .results-header h3 {
+      color: #495057;
+      font-size: 1.1em;
+    }
+
+    .sort-button {
+      padding: 6px 12px;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 20px;
+      font-size: 0.85em;
+      color: #495057;
+    }
+
+    .restaurant-card {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .restaurant-card:active {
+      transform: scale(0.98);
+    }
+
+    .restaurant-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .restaurant-name {
+      font-weight: 600;
+      color: #212529;
+      font-size: 1.05em;
+      flex: 1;
+      padding-right: 10px;
+    }
+
+    .restaurant-type {
+      background: #8B4513;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .restaurant-info {
+      color: #6c757d;
+      font-size: 0.9em;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .restaurant-info strong {
+      color: #495057;
+    }
+
+    .restaurant-info a {
+      color: #D4A574;
+      text-decoration: none;
+    }
+
+    .restaurant-info a:hover {
+      text-decoration: underline;
+    }
+
+    .beer-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 8px 0;
+    }
+
+    .beer-badge {
+      display: inline-block;
+      background: #28a745;
+      color: white;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 0.75em;
+    }
+
+    .restaurant-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .restaurant-distance {
+      flex: 1;
+      background: #f8f9fa;
+      color: #8B4513;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 0.9em;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .navigate-btn {
+      flex: 1;
+      background: #28a745;
+      color: white;
+      padding: 8px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.9em;
+      font-weight: 600;
+      text-align: center;
+      transition: background 0.2s ease;
+    }
+
+    .navigate-btn:active {
+      background: #218838;
+    }
+
+    /* Floating action button - OPRAVENO pozice */
+    .fab-container {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
+      right: 20px;
+      z-index: 50; /* Sníženo z 90 */
+    }
+
+    .fab-container.hidden {
+      display: none;
+    }
+
+    .fab {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      font-size: 1.5em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .fab:active {
+      transform: scale(0.9);
+    }
+
+    /* Tlačítka */
+    .search-btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #D4A574 0%, #8B4513 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 20px;
+    }
+
+    .search-btn:active {
+      transform: scale(0.98);
+    }
+
+    .reset-btn {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      color: #8B4513;
+      border: 2px solid #8B4513;
+      border-radius: 12px;
+      font-size: 0.95em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 10px;
+    }
+
+    .reset-btn:active {
+      background: #8B4513;
+      color: white;
+    }
+
+    /* Loading state */
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: #6c757d;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #D4A574;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Error a success messages */
+    .message {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 0.9em;
+    }
+
+    .error-message {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .warning-message {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+
+    /* Desktop responsive */
+    @media (min-width: 768px) {
+      .mobile-container {
+        max-width: 768px;
+        margin: 0 auto;
+        box-shadow: 0 0 40px rgba(0,0,0,0.2);
+      }
+
+      .header h1 {
+        font-size: 1.8em;
+      }
+
+      .mobile-tabs {
+        display: none;
+      }
+
+      .content-section {
+        display: block !important;
+      }
+
+      #map {
+        height: 500px;
+        border-radius: 12px;
+        margin: 15px;
+      }
+
+      .filters-section {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .results-section {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .fab-container {
+        display: none;
+      }
+    }
+
+    /* Landscape mode adjustments */
+    @media (orientation: landscape) and (max-height: 500px) {
+      .header {
+        padding: 10px 15px;
+      }
+
+      .header h1 {
+        font-size: 1.1em;
+        margin-bottom: 5px;
+      }
+
+      #map {
+        height: calc(100vh - 100px);
+      }
+    }
+
+    /* iOS specific fixes */
+    @supports (-webkit-touch-callout: none) {
+      input[type="text"],
+      input[type="number"],
+      select {
+        font-size: 16px !important;
+      }
+    }
+
+    /* Multi-select pro značky piva */
+    .beer-select-container {
+      position: relative;
+    }
+
+    .beer-select-display {
+      padding: 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .beer-select-display.active {
+      border-color: #D4A574;
+    }
+
+    .beer-select-text {
+      flex: 1;
+      color: #495057;
+      font-size: 0.95em;
+    }
+
+    .beer-select-arrow {
+      width: 20px;
+      height: 20px;
+      transition: transform 0.3s ease;
+    }
+
+    .beer-select-display.active .beer-select-arrow {
+      transform: rotate(180deg);
+    }
+
+    .beer-select-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 2px solid #e9ecef;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+    }
+
+    .beer-select-dropdown.active {
+      display: block;
+    }
+
+    .beer-option {
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .beer-option:hover {
+      background: #f8f9fa;
+    }
+
+    .beer-option.selected {
+      background: #fff3e0;
+    }
+
+    .beer-option input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+    }
+
+    .beer-option label {
+      flex: 1;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    /* Rating stars */
+    .rating-stars {
+      color: #FFA500;
+      font-size: 0.9em;
+    }
+
+    /* Availability badges */
+    .availability-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75em;
+      margin-left: 5px;
+    }
+
+    .availability-badge.open {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .availability-badge.closed {
+      background: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <div class="mobile-container">
+    <div class="header">
+      <h1>🍺 Pivní mapa</h1>
+      <div class="location-status" id="locationStatus">
+        <span id="locationText">📍 Získávám polohu...</span>
+      </div>
+    </div>
+
+    <!-- Mobilní taby -->
+    <div class="mobile-tabs">
+      <button class="tab-button active" onclick="switchTab('map')">🗺️ Mapa</button>
+      <button class="tab-button" onclick="switchTab('filters')">⚙️ Filtry</button>
+      <button class="tab-button" onclick="switchTab('results')">📋 Seznam</button>
+    </div>
+
+    <!-- Mapa -->
+    <div id="mapSection" class="content-section active">
+      <div id="map"></div>
+    </div>
+
+    <!-- Filtry -->
+    <div id="filtersSection" class="content-section">
+      <div class="filters-section">
+        <!-- Vzdálenost -->
+        <div class="filter-card">
+          <h3>📍 Vzdálenost</h3>
+          <div class="filter-group">
+            <label>Okruh vyhledávání</label>
+            <div class="range-group">
+              <input type="range" id="radius" min="0.5" max="20" value="3" step="0.5">
+              <span class="range-value" id="radiusValue">3 km</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Značky piva -->
+        <div class="filter-card">
+          <h3>🍺 Značky piva</h3>
+          <div class="filter-group">
+            <div class="beer-select-container">
+              <div class="beer-select-display" id="beerSelectDisplay" onclick="toggleBeerDropdown()">
+                <span class="beer-select-text" id="beerSelectText">Všechny značky</span>
+                <svg class="beer-select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+              <div class="beer-select-dropdown" id="beerSelectDropdown">
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-all" checked onchange="toggleAllBeers(this)">
+                  <label for="beer-all">Všechny značky</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-pilsner" class="beer-checkbox">
+                  <label for="beer-pilsner">Pilsner Urquell</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-budvar" class="beer-checkbox">
+                  <label for="beer-budvar">Budweiser Budvar</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-staropramen" class="beer-checkbox">
+                  <label for="beer-staropramen">Staropramen</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-kozel" class="beer-checkbox">
+                  <label for="beer-kozel">Kozel</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-gambrinus" class="beer-checkbox">
+                  <label for="beer-gambrinus">Gambrinus</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-bernard" class="beer-checkbox">
+                  <label for="beer-bernard">Bernard</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-radegast" class="beer-checkbox">
+                  <label for="beer-radegast">Radegast</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-krusovice" class="beer-checkbox">
+                  <label for="beer-krusovice">Krušovice</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-svijany" class="beer-checkbox">
+                  <label for="beer-svijany">Svijany</label>
+                </div>
+                <div class="beer-option">
+                  <input type="checkbox" id="beer-primator" class="beer-checkbox">
+                  <label for="beer-primator">Primátor</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Typ piva -->
+          <div class="filter-group">
+            <label>Typ piva</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="type-tankove">
+                <span class="checkmark"></span>
+                <span>Tankové</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="type-sudove">
+                <span class="checkmark"></span>
+                <span>Sudové</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="type-lahvove">
+                <span class="checkmark"></span>
+                <span>Lahvové</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Typ podniku -->
+        <div class="filter-card">
+          <h3>🏠 Typ podniku</h3>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="venue-restaurant" checked>
+              <span class="checkmark"></span>
+              <span>Restaurace</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="venue-pub" checked>
+              <span class="checkmark"></span>
+              <span>Hospoda</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="venue-bar" checked>
+              <span class="checkmark"></span>
+              <span>Bar</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="venue-brewery">
+              <span class="checkmark"></span>
+              <span>Pivovar</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="venue-club">
+              <span class="checkmark"></span>
+              <span>Klub</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Služby a vybavení -->
+        <div class="filter-card">
+          <h3>🎯 Služby a vybavení</h3>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="service-food">
+              <span class="checkmark"></span>
+              <span>Jídlo</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="service-garden">
+              <span class="checkmark"></span>
+              <span>Zahrádka</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="service-wifi">
+              <span class="checkmark"></span>
+              <span>WiFi</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="service-parking">
+              <span class="checkmark"></span>
+              <span>Parkování</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="service-cards">
+              <span class="checkmark"></span>
+              <span>Platba kartou</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="service-wheelchair">
+              <span class="checkmark"></span>
+              <span>Bezbariérový</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Kuchyně -->
+        <div class="filter-card">
+          <h3>🍽️ Kuchyně</h3>
+          <div class="filter-group">
+            <select id="cuisine">
+              <option value="">Všechny typy</option>
+              <option value="czech">Česká</option>
+              <option value="italian">Italská</option>
+              <option value="asian">Asijská</option>
+              <option value="pizza">Pizza</option>
+              <option value="burger">Burgery</option>
+              <option value="vietnamese">Vietnamská</option>
+              <option value="chinese">Čínská</option>
+              <option value="indian">Indická</option>
+              <option value="mexican">Mexická</option>
+              <option value="japanese">Japonská</option>
+              <option value="thai">Thajská</option>
+              <option value="greek">Řecká</option>
+              <option value="spanish">Španělská</option>
+              <option value="french">Francouzská</option>
+              <option value="american">Americká</option>
+              <option value="international">Mezinárodní</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Hodnocení -->
+        <div class="filter-card">
+          <h3>⭐ Hodnocení</h3>
+          <div class="filter-group">
+            <label>Minimální hodnocení</label>
+            <div class="range-group">
+              <input type="range" id="minRating" min="1" max="5" value="1" step="0.5">
+              <span class="range-value" id="minRatingValue">⭐</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Další filtry -->
+        <div class="filter-card">
+          <h3>🕐 Otevírací doba</h3>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="open-now">
+              <span class="checkmark"></span>
+              <span>Pouze otevřené</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="open-late">
